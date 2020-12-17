@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Schedules {@link TimerTask}s for one-time future execution in a background
  * thread.
+ * 定义了定时器的基本行为
  */
 public interface Timer {
 
