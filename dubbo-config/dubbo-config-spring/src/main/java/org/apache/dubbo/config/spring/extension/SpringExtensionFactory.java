@@ -30,6 +30,7 @@ import java.util.Set;
 
 /**
  * SpringExtensionFactory
+ * 将属性名称作为 Spring Bean 的名称，从 Spring 容器中获取 Bean
  */
 public class SpringExtensionFactory implements ExtensionFactory {
     private static final Logger logger = LoggerFactory.getLogger(SpringExtensionFactory.class);
@@ -66,6 +67,7 @@ public class SpringExtensionFactory implements ExtensionFactory {
         }
 
         for (ApplicationContext context : CONTEXTS) {
+            // 从spring中查找bean
             T bean = BeanFactoryUtils.getOptionalBean(context, name, type);
             if (bean != null) {
                 return bean;
