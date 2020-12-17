@@ -1,0 +1,2 @@
+org.apache.dubbo.demo.jjzhou.jdk.spi.impl.MyLog4j
+org.apache.dubbo.demo.jjzhou.jdk.spi.impl.MyLogback
