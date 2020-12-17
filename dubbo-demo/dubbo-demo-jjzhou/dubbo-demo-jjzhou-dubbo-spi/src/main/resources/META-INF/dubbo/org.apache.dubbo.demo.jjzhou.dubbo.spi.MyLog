@@ -1,0 +1,2 @@
+myLogback=org.apache.dubbo.demo.jjzhou.dubbo.spi.impl.MyLogback
+myLog4j=org.apache.dubbo.demo.jjzhou.dubbo.spi.impl.MyLog4j
