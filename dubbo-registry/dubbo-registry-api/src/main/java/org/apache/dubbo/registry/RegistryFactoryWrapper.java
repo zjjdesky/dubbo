@@ -22,6 +22,12 @@ import org.apache.dubbo.common.extension.ExtensionLoader;
 
 import java.util.Collections;
 
+/**
+ * RegistryFactoryWrapper 是 RegistryFactory 接口的 Wrapper 类，
+ * 它在底层 RegistryFactory 创建的 Registry 对象外层封装了一个 ListenerRegistryWrapper ，
+ * ListenerRegistryWrapper 中维护了一个 RegistryServiceListener 集合，
+ * 会将 register()、subscribe() 等事件通知到 RegistryServiceListener 监听器。
+ */
 public class RegistryFactoryWrapper implements RegistryFactory {
     private RegistryFactory registryFactory;
 

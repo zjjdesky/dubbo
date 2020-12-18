@@ -23,20 +23,21 @@ public interface Node {
 
     /**
      * get url.
-     *
+     * 返回表示当前节点的 URL
      * @return url.
      */
     URL getUrl();
 
     /**
      * is available.
-     *
+     * 检测当前节点是否可用
      * @return available.
      */
     boolean isAvailable();
 
     /**
      * destroy.
+     * 销毁当前节点并释放底层资源
      */
     void destroy();
 
