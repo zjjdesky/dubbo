@@ -58,10 +58,11 @@ public final class FailedNotifiedTask extends AbstractRetryTask {
 
     @Override
     protected void doRetry(URL url, FailbackRegistry registry, Timeout timeout) {
+        // 如果urls集合不为空，则会通知所有Listener，该任务也就啥都不做了
         if (CollectionUtils.isNotEmpty(urls)) {
             listener.notify(urls);
             urls.clear();
         }
-        reput(timeout, retryPeriod);
+        reput(timeout, retryPeriod);// 将任务重新添加到时间轮中等待执行
     }
 }
