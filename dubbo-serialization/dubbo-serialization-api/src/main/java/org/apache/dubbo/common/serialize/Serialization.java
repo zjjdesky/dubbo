@@ -32,21 +32,21 @@ import java.io.OutputStream;
  *     e.g. &lt;dubbo:protocol serialization="xxx" /&gt;
  * </pre>
  */
-@SPI("hessian2")
+@SPI("hessian2") // 被@SPI注解修饰，默认是使用hessian2序列化算法
 public interface Serialization {
 
     /**
      * Get content type unique id, recommended that custom implementations use values different with
      * any value of {@link Constants} and don't greater than ExchangeCodec.SERIALIZATION_MASK (31) 
      * because dubbo protocol use 5 bits to record serialization ID in header.
-     *
+     * 获取ContentType的ID值，是一个byte类型的值，唯一确定一个算法
      * @return content type id
      */
     byte getContentTypeId();
 
     /**
      * Get content type
-     *
+     * 每一种序列化算法都对应一个ContentType，该方法用于获取ContentType
      * @return content type
      */
     String getContentType();
