@@ -71,9 +71,9 @@ public class HeaderExchangeClient implements ExchangeClient {
 
         if (startTimer) {
             URL url = client.getUrl();
-            // 执行重连定时任务
+            // 开启重连定时任务
             startReconnectTask(url);
-            // 执行心跳定时任务
+            // 开启心跳定时任务
             startHeartBeatTask(url);
         }
     }
@@ -200,11 +200,14 @@ public class HeaderExchangeClient implements ExchangeClient {
     }
 
     private void startHeartBeatTask(URL url) {
-        if (!client.canHandleIdle()) {
+        if (!client.canHandleIdle()) { // 是否启动心跳
             AbstractTimerTask.ChannelProvider cp = () -> Collections.singletonList(HeaderExchangeClient.this);
+            // 根据url获取心跳间隔
             int heartbeat = getHeartbeat(url);
             long heartbeatTick = calculateLeastDuration(heartbeat);
+            // 创建心跳任务
             this.heartBeatTimerTask = new HeartbeatTimerTask(cp, heartbeatTick, heartbeat);
+            // 提交到IDLE_CHECK_TIME这个时间轮中等待执行
             IDLE_CHECK_TIMER.newTimeout(heartBeatTimerTask, heartbeatTick, TimeUnit.MILLISECONDS);
         }
     }
