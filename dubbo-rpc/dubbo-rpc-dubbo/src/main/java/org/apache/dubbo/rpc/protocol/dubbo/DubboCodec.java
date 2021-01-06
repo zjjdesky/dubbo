@@ -46,6 +46,9 @@ import static org.apache.dubbo.rpc.protocol.dubbo.Constants.DEFAULT_DECODE_IN_IO
 
 /**
  * Dubbo codec.
+ *
+ * ExchangeCodec 只处理了 Dubbo 协议的请求头，而 DubboCodec 则是通过继承的方式，
+ * 在 ExchangeCodec 基础之上，添加了解析 Dubbo 消息体的功能
  */
 public class DubboCodec extends ExchangeCodec {
 
@@ -122,15 +125,18 @@ public class DubboCodec extends ExchangeCodec {
                     data = decodeEventData(channel, in);
                 } else {
                     DecodeableRpcInvocation inv;
+                    // 检查DECODE_IN_IO_THREAD_KEY参数
                     if (channel.getUrl().getParameter(DECODE_IN_IO_THREAD_KEY, DEFAULT_DECODE_IN_IO_THREAD)) {
                         inv = new DecodeableRpcInvocation(channel, req, is, proto);
+                        // 直接调用decode()方法在当前IO线程中解码
                         inv.decode();
-                    } else {
+                    } else { // 这里只是读数据，不会调用decode()方法在当前IO线程中进行解码
                         inv = new DecodeableRpcInvocation(channel, req,
                                 new UnsafeByteArrayInputStream(readMessageData(is)), proto);
                     }
                     data = inv;
                 }
+                // 设置到Request请求的data字段
                 req.setData(data);
             } catch (Throwable t) {
                 if (log.isWarnEnabled()) {
@@ -164,8 +170,17 @@ public class DubboCodec extends ExchangeCodec {
         encodeResponseData(channel, out, data, DUBBO_VERSION);
     }
 
+    /**
+     * 按照dubbo协议的格式编码 Request 请求体
+     * @param channel
+     * @param out
+     * @param data
+     * @param version
+     * @throws IOException
+     */
     @Override
     protected void encodeRequestData(Channel channel, ObjectOutput out, Object data, String version) throws IOException {
+        // 请求体相关的内容，都封装在了RpcInvocation
         RpcInvocation inv = (RpcInvocation) data;
 
         out.writeUTF(version);
@@ -174,17 +189,22 @@ public class DubboCodec extends ExchangeCodec {
         if (serviceName == null) {
             serviceName = inv.getAttachment(PATH_KEY);
         }
+        // 写入服务名称
         out.writeUTF(serviceName);
+        // 写入Service版本号
         out.writeUTF(inv.getAttachment(VERSION_KEY));
-
+        // 写入方法名称
         out.writeUTF(inv.getMethodName());
+        // 写入参数类型列表
         out.writeUTF(inv.getParameterTypesDesc());
+        // 依次写入全部参数
         Object[] args = inv.getArguments();
         if (args != null) {
             for (int i = 0; i < args.length; i++) {
                 out.writeObject(encodeInvocationArgument(channel, inv, i));
             }
         }
+        // 依次写入全部的附加信息
         out.writeAttachments(inv.getObjectAttachments());
     }
 

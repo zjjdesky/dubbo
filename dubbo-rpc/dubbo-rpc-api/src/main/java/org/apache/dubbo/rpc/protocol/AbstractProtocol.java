@@ -45,14 +45,22 @@ import static org.apache.dubbo.common.constants.CommonConstants.VERSION_KEY;
 public abstract class AbstractProtocol implements Protocol {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-
+    /**
+     * 用于存储export出去的服务集合
+     * key：通过ProtocolUtils.serviceKey()方法创建的服务标识
+     */
     protected final Map<String, Exporter<?>> exporterMap = new ConcurrentHashMap<String, Exporter<?>>();
 
     /**
+     * 记录了全部的ProtocolServer实例
+     * key: host:port   value: 监听该地址的ProtocolServer
      * <host:port, ProtocolServer>
      */
     protected final Map<String, ProtocolServer> serverMap = new ConcurrentHashMap<>();
 
+    /**
+     * 服务引用的集合
+     */
     //TODO SoftReference
     protected final Set<Invoker<?>> invokers = new ConcurrentHashSet<Invoker<?>>();
 
@@ -78,6 +86,7 @@ public abstract class AbstractProtocol implements Protocol {
                     if (logger.isInfoEnabled()) {
                         logger.info("Destroy reference: " + invoker.getUrl());
                     }
+                    // 关闭全部的服务引用
                     invoker.destroy();
                 } catch (Throwable t) {
                     logger.warn(t.getMessage(), t);
@@ -91,6 +100,7 @@ public abstract class AbstractProtocol implements Protocol {
                     if (logger.isInfoEnabled()) {
                         logger.info("Unexport service: " + exporter.getInvoker().getUrl());
                     }
+                    // 关闭暴露出去的服务
                     exporter.unexport();
                 } catch (Throwable t) {
                     logger.warn(t.getMessage(), t);

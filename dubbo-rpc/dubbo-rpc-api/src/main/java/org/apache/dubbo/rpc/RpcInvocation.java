@@ -50,33 +50,59 @@ public class RpcInvocation implements Invocation, Serializable {
 
     private static final long serialVersionUID = -4355285085441097045L;
 
+    /**
+     * 要调用的唯一服务名称，其实就是 ServiceKey，
+     * 即 interface/group:version 三部分构成的字符串。
+     */
     private String targetServiceUniqueName;
-
+    /**
+     * 调用的目标方法名称
+     */
     private String methodName;
+    /**
+     * 调用的目标服务名称
+     */
     private String serviceName;
-
+    /**
+     * 记录了目标方法的全部参数类型
+     */
     private transient Class<?>[] parameterTypes;
+    /**
+     * 参数列表签名
+     */
     private String parameterTypesDesc;
-    private String[] compatibleParamSignatures;
 
+    private String[] compatibleParamSignatures;
+    /**
+     * 具体参数值
+     */
     private Object[] arguments;
 
     /**
      * Passed to the remote server during RPC call
+     * 此次调用的附加信息，可以被序列化到请求中
      */
     private Map<String, Object> attachments;
 
     /**
      * Only used on the caller side, will not appear on the wire.
+     * 此次调用的属性信息，这些信息不能被发送出去
      */
     private Map<Object, Object> attributes = new HashMap<Object, Object>();
 
+    /**
+     * 此次调用关联的 Invoker 对象
+     */
     private transient Invoker<?> invoker;
-
+    /**
+     * 返回值的类型
+     */
     private transient Class<?> returnType;
 
     private transient Type[] returnTypes;
-
+    /**
+     * 此次调用的模式，分为 SYNC、ASYNC 和 FUTURE 三类
+     */
     private transient InvokeMode invokeMode;
 
     public RpcInvocation() {

@@ -25,7 +25,9 @@ import java.util.Map;
  */
 public abstract class SerializableClassRegistry {
 
-
+    /**
+     * 将待优化的类写入该集合中暂存，在使用 Kryo、FST 等序列化算法时，会读取该集合中的类，完成注册操作
+     */
     private static final Map<Class<?>, Object> REGISTRATIONS = new LinkedHashMap<>();
 
     /**

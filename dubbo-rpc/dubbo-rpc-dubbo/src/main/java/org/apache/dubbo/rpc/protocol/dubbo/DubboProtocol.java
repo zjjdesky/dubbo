@@ -105,6 +105,8 @@ public class DubboProtocol extends AbstractProtocol {
     private final ConcurrentMap<String, Object> locks = new ConcurrentHashMap<>();
     private final Set<String> optimizers = new ConcurrentHashSet<>();
 
+    // 它是一个实现了 ExchangeHandlerAdapter 抽象类的匿名内部类的实例，
+    // 间接实现了 ExchangeHandler 接口，其核心是 reply() 方法
     private ExchangeHandler requestHandler = new ExchangeHandlerAdapter() {
 
         @Override
@@ -117,6 +119,7 @@ public class DubboProtocol extends AbstractProtocol {
             }
 
             Invocation inv = (Invocation) message;
+            // 获取此次调用Invoker对象
             Invoker<?> invoker = getInvoker(channel, inv);
             // need to consider backward-compatibility if it's a callback
             if (Boolean.TRUE.toString().equals(inv.getObjectAttachments().get(IS_CALLBACK_SERVICE_INVOKE))) {
@@ -141,8 +144,11 @@ public class DubboProtocol extends AbstractProtocol {
                     return null;
                 }
             }
+            // 将客户端的地址记录到RpcContext中
             RpcContext.getContext().setRemoteAddress(channel.getRemoteAddress());
+            // 执行真正的调用
             Result result = invoker.invoke(inv);
+            // 返回结果
             return result.thenApply(Function.identity());
         }
 
@@ -233,6 +239,15 @@ public class DubboProtocol extends AbstractProtocol {
                         .equals(NetUtils.filterLocalHost(address.getAddress().getHostAddress()));
     }
 
+    /**
+     * 先根据 Invocation 携带的信息构造 ServiceKey，
+     * 然后从 exporterMap 集合中查找对应的 DubboExporter 对象，
+     * 并从中获取底层的 Invoker 对象返回
+     * @param channel
+     * @param inv
+     * @return
+     * @throws RemotingException
+     */
     Invoker<?> getInvoker(Channel channel, Invocation inv) throws RemotingException {
         boolean isCallBackServiceInvoke = false;
         boolean isStubServiceInvoke = false;
@@ -264,7 +279,7 @@ public class DubboProtocol extends AbstractProtocol {
             throw new RemotingException(channel, "Not found exported service: " + serviceKey + " in " + exporterMap.keySet() + ", may be version or group mismatch " +
                     ", channel: consumer: " + channel.getRemoteAddress() + " --> provider: " + channel.getLocalAddress() + ", message:" + getInvocationWithoutData(inv));
         }
-
+        // 获取exporter中获取Invoker对象
         return exporter.getInvoker();
     }
 
@@ -282,7 +297,9 @@ public class DubboProtocol extends AbstractProtocol {
         URL url = invoker.getUrl();
 
         // export service.
+        // 创建serviceKey
         String key = serviceKey(url);
+        // 将上层传入的Invoker对象封装成DubboExporter对象，然后记录到exportMap集合中
         DubboExporter<T> exporter = new DubboExporter<T>(invoker, key, exporterMap);
         exporterMap.put(key, exporter);
 
@@ -299,8 +316,9 @@ public class DubboProtocol extends AbstractProtocol {
 
             }
         }
-
+        // 启动ProtocolServer
         openServer(url);
+        // 进行序列化优化处理
         optimizeSerialization(url);
 
         return exporter;
@@ -310,29 +328,38 @@ public class DubboProtocol extends AbstractProtocol {
         // find server.
         String key = url.getAddress();
         //client can export a service which's only for server to invoke
+        // 根据 URL 判断当前是否为服务端，只有服务端才能创建 ProtocolServer 并对外服务
+        // 如果是来自服务端的调用，会依靠 serverMap 集合检查是否已有 ProtocolServer 在监听 URL 指定的地址；
+        // 如果没有，会调用 createServer() 方法进行创建。
         boolean isServer = url.getParameter(IS_SERVER_KEY, true);
         if (isServer) {
             ProtocolServer server = serverMap.get(key);
             if (server == null) {
                 synchronized (this) {
                     server = serverMap.get(key);
-                    if (server == null) {
+                    if (server == null) { // double check
+                        // 调用createServer方法创建ProtocolServer对象
                         serverMap.put(key, createServer(url));
                     }
                 }
             } else {
                 // server supports reset, use together with override
+                // 如果有ProtocolServer实例，则尝试根据URL信息重置ProtocolServer
                 server.reset(url);
             }
         }
     }
 
     private ProtocolServer createServer(URL url) {
+        // 给url添加一些默认值
         url = URLBuilder.from(url)
                 // send readonly event when server closes, it's enabled by default
+                // ReadOnly请求是否阻塞等待
                 .addParameterIfAbsent(CHANNEL_READONLYEVENT_SENT_KEY, Boolean.TRUE.toString())
                 // enable heartbeat by default
+                // 心跳间隔
                 .addParameterIfAbsent(HEARTBEAT_KEY, String.valueOf(DEFAULT_HEARTBEAT))
+                // Codec2扩展实现
                 .addParameter(CODEC_KEY, DubboCodec.NAME)
                 .build();
         String str = url.getParameter(SERVER_KEY, DEFAULT_REMOTING_SERVER);
@@ -355,11 +382,12 @@ public class DubboProtocol extends AbstractProtocol {
                 throw new RpcException("Unsupported client type: " + str);
             }
         }
-
+        // 将ExchangeServer封装成DubboProtocolServer返回
         return new DubboProtocolServer(server);
     }
 
     private void optimizeSerialization(URL url) throws RpcException {
+        // 根据URL中的optimizer参数值，确定SerializationOptimizer接口的实现类
         String className = url.getParameter(OPTIMIZER_KEY, "");
         if (StringUtils.isEmpty(className) || optimizers.contains(className)) {
             return;
@@ -372,13 +400,13 @@ public class DubboProtocol extends AbstractProtocol {
             if (!SerializationOptimizer.class.isAssignableFrom(clazz)) {
                 throw new RpcException("The serialization optimizer " + className + " isn't an instance of " + SerializationOptimizer.class.getName());
             }
-
+            // 创建SerializationOptimizer实现类的对象
             SerializationOptimizer optimizer = (SerializationOptimizer) clazz.newInstance();
 
             if (optimizer.getSerializableClasses() == null) {
                 return;
             }
-
+            // 调用getSerializableClasses()方法获取需要注册的类
             for (Class c : optimizer.getSerializableClasses()) {
                 SerializableClassRegistry.registerClass(c);
             }

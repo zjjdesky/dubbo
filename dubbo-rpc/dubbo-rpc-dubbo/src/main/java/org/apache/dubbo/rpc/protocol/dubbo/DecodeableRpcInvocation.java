@@ -49,6 +49,11 @@ import static org.apache.dubbo.common.constants.CommonConstants.PATH_KEY;
 import static org.apache.dubbo.common.constants.CommonConstants.VERSION_KEY;
 import static org.apache.dubbo.rpc.protocol.dubbo.CallbackServiceCodec.decodeInvocationArgument;
 
+/**
+ * DecodeableRpcInvocation用来支持解码的
+ * 其实现的 decode() 方法正好是 DubboCodec.encodeRequestData() 方法对应的解码操作
+ * 在 DubboCodec.decodeBody() 方法中就调用了这个方法
+ */
 public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Decodeable {
 
     private static final Logger log = LoggerFactory.getLogger(DecodeableRpcInvocation.class);
