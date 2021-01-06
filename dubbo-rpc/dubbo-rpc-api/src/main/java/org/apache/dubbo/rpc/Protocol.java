@@ -31,7 +31,7 @@ public interface Protocol {
 
     /**
      * Get default port when user doesn't config the port.
-     *
+     * 获取默认端口
      * @return default port
      */
     int getDefaultPort();
@@ -44,6 +44,7 @@ public interface Protocol {
      * export the same URL<br>
      * 3. Invoker instance is passed in by the framework, protocol needs not to care <br>
      *
+     * 将Invoker暴露出去
      * @param <T>     Service type
      * @param invoker Service invoker
      * @return exporter reference for exported service, useful for unexport the service later
@@ -60,7 +61,8 @@ public interface Protocol {
      * protocol sends remote request in the `Invoker` implementation. <br>
      * 3. When there's check=false set in URL, the implementation must not throw exception but try to recover when
      * connection fails.
-     *
+     * 引用一个Invoker，refer()方法会根据参数返回一个Invoker对象
+     * Consumer端可以通过这个Invoker请求到Provider端的服务
      * @param <T>  Service type
      * @param type Service class
      * @param url  URL address for the remote service
@@ -75,12 +77,14 @@ public interface Protocol {
      * 1. Cancel all services this protocol exports and refers <br>
      * 2. Release all occupied resources, for example: connection, port, etc. <br>
      * 3. Protocol can continue to export and refer new service even after it's destroyed.
+     * 销毁export() 方法以及refer()方法使用到的Invoker对象
+     * 释放当前Protocol对象占用的资源
      */
     void destroy();
 
     /**
      * Get all servers serving this protocol
-     *
+     * 返回当前Protocol底层的全部ProtocolServer
      * @return
      */
     default List<ProtocolServer> getServers() {

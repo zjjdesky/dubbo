@@ -26,7 +26,7 @@ public interface ExporterListener {
 
     /**
      * The exporter exported.
-     *
+     * 当有服务发布的时候 会触发该方法
      * @param exporter
      * @throws RpcException
      * @see org.apache.dubbo.rpc.Protocol#export(Invoker)
@@ -35,7 +35,7 @@ public interface ExporterListener {
 
     /**
      * The exporter unexported.
-     *
+     * 当有服务取消发布的时候 会触发该方法
      * @param exporter
      * @throws RpcException
      * @see org.apache.dubbo.rpc.Exporter#unexport()

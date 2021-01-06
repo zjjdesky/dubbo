@@ -43,30 +43,42 @@ import java.util.function.Function;
  * @serial Don't change the class name and package name.
  * @see org.apache.dubbo.rpc.Invoker#invoke(Invocation)
  * @see AppResponse
+ *
+ * Result 接口是 Invoker.invoke() 方法的返回值，
+ * 抽象了一次调用的返回值，其中包含了被调用方返回值（或是异常）以及附加信息，
+ * 我们也可以添加回调方法，在 RPC 调用方法结束时会触发这些回调。
  */
 public interface Result extends Serializable {
 
     /**
      * Get invoke result.
-     *
+     * 获取此次调用的返回值
      * @return result. if no result return null.
      */
     Object getValue();
 
+    /**
+     * 设置这次调用的返回值
+     * @param value
+     */
     void setValue(Object value);
 
     /**
      * Get exception.
-     *
+     * 获取异常
      * @return exception. if no exception return null.
      */
     Throwable getException();
 
+    /**
+     * 设置异常
+     * @param t
+     */
     void setException(Throwable t);
 
     /**
      * Has exception.
-     *
+     * 判断是否有异常
      * @return has exception.
      */
     boolean hasException();
@@ -82,6 +94,9 @@ public interface Result extends Serializable {
      * }
      * </code>
      *
+     * recreate()方法是一个复合操作，
+     * 如果此次调用发生异常，则直接抛出异常，
+     * 如果没有异常，则返回结果
      * @return result.
      * @throws if has exception throw it.
      */
@@ -89,7 +104,7 @@ public interface Result extends Serializable {
 
     /**
      * get attachments.
-     *
+     * 获取附加信息
      * @return attachments.
      */
     Map<String, String> getAttachments();

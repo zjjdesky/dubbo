@@ -44,10 +44,11 @@ import org.apache.dubbo.common.extension.SPI;
 public interface Filter {
     /**
      * Make sure call invoker.invoke() in your implementation.
+     * 将请求传给后续的Invoker进行处理
      */
     Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException;
 
-    interface Listener {
+    interface Listener { // 用于监听响应以及异常
 
         void onResponse(Result appResponse, Invoker<?> invoker, Invocation invocation);
 
