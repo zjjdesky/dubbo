@@ -28,6 +28,8 @@ import org.apache.dubbo.remoting.exchange.support.header.HeaderExchanger;
  * <p>
  * <a href="http://en.wikipedia.org/wiki/Message_Exchange_Pattern">Message Exchange Pattern</a>
  * <a href="http://en.wikipedia.org/wiki/Request-response">Request-Response</a>
+ * Dubbo 将信息交换行为抽象成 Exchange 层，
+ * 官方文档对这一层的说明是：封装了请求-响应的语义，即关注一问一答的交互模式，实现了同步转异步。
  */
 @SPI(HeaderExchanger.NAME)
 public interface Exchanger {

@@ -40,13 +40,16 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NettyServerHandler extends ChannelDuplexHandler {
     private static final Logger logger = LoggerFactory.getLogger(NettyServerHandler.class);
     /**
+     * 记录了当前Server创建的所有Channel
      * the cache for alive worker channel.
      * <ip:port, dubbo channel>
      */
     private final Map<String, Channel> channels = new ConcurrentHashMap<String, Channel>();
 
     private final URL url;
-
+    /**
+     * 注册在Channel上的消息处理器
+     */
     private final ChannelHandler handler;
 
     public NettyServerHandler(URL url, ChannelHandler handler) {
@@ -101,11 +104,20 @@ public class NettyServerHandler extends ChannelDuplexHandler {
 
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+        // 将发送的数据继续向下传递
         super.write(ctx, msg, promise);
         NettyChannel channel = NettyChannel.getOrAddChannel(ctx.channel(), url, handler);
+        // 并不影响消息的继续发送，只是触发sent()方法进行相关的处理，这也是方法名称是动词过去式的原因
         handler.sent(channel, msg);
     }
 
+    /**
+     * NettyServerHandler 在收到 IdleStateEvent 事件时会断开连接
+     * 而 NettyClientHandler 则会发送心跳消息
+     * @param ctx
+     * @param evt
+     * @throws Exception
+     */
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         // server will close channel when server don't receive any heartbeat from client util timeout.

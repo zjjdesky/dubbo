@@ -23,6 +23,11 @@ import java.net.InetSocketAddress;
 /**
  * Endpoint. (API/SPI, Prototype, ThreadSafe)
  *
+ * 端点
+ * 我们可以通过一个 ip 和 port 唯一确定一个端点，两个端点之间会创建 TCP 连接，可以双向传输数据。
+ * Dubbo 将 Endpoint 之间的 TCP 连接抽象为通道（Channel），
+ * 将发起请求的 Endpoint 抽象为客户端（Client），
+ * 将接收请求的 Endpoint 抽象为服务端（Server）。
  *
  * @see org.apache.dubbo.remoting.Channel
  * @see org.apache.dubbo.remoting.Client

@@ -23,13 +23,21 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 public abstract class AbstractChannelBuffer implements ChannelBuffer {
-
+    /**
+     * 读指针
+     */
     private int readerIndex;
-
+    /**
+     * 写指针
+     */
     private int writerIndex;
-
+    /**
+     * 标记的读指针
+     */
     private int markedReaderIndex;
-
+    /**
+     * 标记的写指针
+     */
     private int markedWriterIndex;
 
     @Override

@@ -55,6 +55,12 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
         this.handler = handler;
     }
 
+    /**
+     * 处理response
+     * @param channel
+     * @param response
+     * @throws RemotingException
+     */
     static void handleResponse(Channel channel, Response response) throws RemotingException {
         if (response != null && !response.isHeartbeat()) {
             DefaultFuture.received(channel, response);
@@ -69,15 +75,32 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
                         .equals(NetUtils.filterLocalHost(address.getAddress().getHostAddress()));
     }
 
+    /**
+     * 处理事件
+     * 只读请求会由handlerEvent() 方法进行处理，它会在 Channel 上设置 channel.readonly 标志，后续介绍的上层调用中会读取该值。
+     * @param channel
+     * @param req
+     * @throws RemotingException
+     */
     void handlerEvent(Channel channel, Request req) throws RemotingException {
         if (req.getData() != null && req.getData().equals(READONLY_EVENT)) {
             channel.setAttribute(Constants.CHANNEL_ATTRIBUTE_READONLY_KEY, Boolean.TRUE);
         }
     }
 
+    /**
+     * 处理请求
+     *
+     * 双向请求由handleRequest() 方法进行处理，会先对解码失败的请求进行处理，返回异常响应；
+     * 然后将正常解码的请求交给上层实现的 ExchangeHandler 进行处理，并添加回调。
+     * 上层 ExchangeHandler 处理完请求后，会触发回调，根据处理结果填充响应结果和响应码，并向对端发送。
+     * @param channel
+     * @param req
+     * @throws RemotingException
+     */
     void handleRequest(final ExchangeChannel channel, Request req) throws RemotingException {
         Response res = new Response(req.getId(), req.getVersion());
-        if (req.isBroken()) {
+        if (req.isBroken()) { // 请求解码失败
             Object data = req.getData();
 
             String msg;
@@ -97,17 +120,18 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
         // find handler by message class.
         Object msg = req.getData();
         try {
+            // 交给上层实现的ExchangeHandler进行处理
             CompletionStage<Object> future = handler.reply(channel, msg);
-            future.whenComplete((appResult, t) -> {
+            future.whenComplete((appResult, t) -> { // 处理结束后的回调
                 try {
-                    if (t == null) {
+                    if (t == null) { // 返回正常响应
                         res.setStatus(Response.OK);
                         res.setResult(appResult);
-                    } else {
+                    } else { // 处理过程发生异常，设置异常信息和错误码
                         res.setStatus(Response.SERVICE_ERROR);
                         res.setErrorMessage(StringUtils.toString(t));
                     }
-                    channel.send(res);
+                    channel.send(res); // 发送响应
                 } catch (RemotingException e) {
                     logger.warn("Send result to consumer failed, channel is " + channel + ", msg is " + e);
                 }

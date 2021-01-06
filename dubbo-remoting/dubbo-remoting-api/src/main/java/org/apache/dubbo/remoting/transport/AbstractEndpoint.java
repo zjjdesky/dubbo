@@ -45,6 +45,7 @@ public abstract class AbstractEndpoint extends AbstractPeer implements Resetable
 
     public AbstractEndpoint(URL url, ChannelHandler handler) {
         super(url, handler);
+        // 根据URL中的codec参数值，确定此处具体的Codec2实现类
         this.codec = getChannelCodec(url);
         this.timeout = url.getPositiveParameter(TIMEOUT_KEY, DEFAULT_TIMEOUT);
         this.connectTimeout = url.getPositiveParameter(Constants.CONNECT_TIMEOUT_KEY, Constants.DEFAULT_CONNECT_TIMEOUT);
@@ -60,6 +61,10 @@ public abstract class AbstractEndpoint extends AbstractPeer implements Resetable
         }
     }
 
+    /**
+     * 根据url参数重置AbstractEndpoint的codec、timeout、connectTimeout字段
+     * @param url
+     */
     @Override
     public void reset(URL url) {
         if (isClosed()) {

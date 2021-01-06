@@ -130,6 +130,9 @@ final class HeaderExchangeChannel implements ExchangeChannel {
         req.setVersion(Version.getProtocolVersion());
         req.setTwoWay(true);
         req.setData(request);
+        // 创建DefaultFuture
+        // send() 方法会返回一个ChannelFuture方法，表示此次发送操作是否完成
+        // DefaultFuture表示此次请求-响应是否完成，也就是说，要收到响应为Future才算完成
         DefaultFuture future = DefaultFuture.newFuture(channel, req, timeout, executor);
         try {
             channel.send(req);

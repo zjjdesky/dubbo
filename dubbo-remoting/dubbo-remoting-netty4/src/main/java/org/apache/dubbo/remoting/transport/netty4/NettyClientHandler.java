@@ -108,6 +108,13 @@ public class NettyClientHandler extends ChannelDuplexHandler {
         });
     }
 
+    /**
+     * NettyServerHandler 在收到 IdleStateEvent 事件时会断开连接
+     * 而 NettyClientHandler 则会发送心跳消息
+     * @param ctx
+     * @param evt
+     * @throws Exception
+     */
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         // send heartbeat when read idle.
@@ -120,7 +127,7 @@ public class NettyClientHandler extends ChannelDuplexHandler {
                 Request req = new Request();
                 req.setVersion(Version.getProtocolVersion());
                 req.setTwoWay(true);
-                req.setEvent(HEARTBEAT_EVENT);
+                req.setEvent(HEARTBEAT_EVENT); // 发送心跳请求
                 channel.send(req);
             } finally {
                 NettyChannel.removeChannelIfDisconnected(ctx.channel());

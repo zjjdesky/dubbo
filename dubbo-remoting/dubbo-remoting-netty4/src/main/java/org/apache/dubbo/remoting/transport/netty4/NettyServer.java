@@ -79,7 +79,6 @@ public class NettyServer extends AbstractServer implements RemotingServer {
 
     /**
      * Init and start netty server
-     *
      * @throws Throwable
      */
     @Override
@@ -90,8 +89,12 @@ public class NettyServer extends AbstractServer implements RemotingServer {
         workerGroup = NettyEventLoopFactory.eventLoopGroup(
                 getUrl().getPositiveParameter(IO_THREADS_KEY, Constants.DEFAULT_IO_THREADS),
                 "NettyServerWorker");
-
+        // 创建NettyServerHandler，它是一个Netty中的ChannelHandler实现，
+        // 不是Dubbo Remoting层的ChannelHandler接口的实现
         final NettyServerHandler nettyServerHandler = new NettyServerHandler(getUrl(), this);
+
+        // 获取当前NettyServer创建的所有Channel，这里的channels集合中的
+        // Channel不是Netty中的Channel对象，而是Dubbo Remoting层的Channel对象
         channels = nettyServerHandler.getChannels();
 
         bootstrap.group(bossGroup, workerGroup)
@@ -103,16 +106,21 @@ public class NettyServer extends AbstractServer implements RemotingServer {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         // FIXME: should we use getTimeout()?
+                        // 连接空闲超时时间
                         int idleTimeout = UrlUtils.getIdleTimeout(getUrl());
+                        // NettyCodecAdapter中会创建Decoder和Encoder
                         NettyCodecAdapter adapter = new NettyCodecAdapter(getCodec(), getUrl(), NettyServer.this);
                         if (getUrl().getParameter(SSL_ENABLED_KEY, false)) {
                             ch.pipeline().addLast("negotiation",
                                     SslHandlerInitializer.sslServerHandler(getUrl(), nettyServerHandler));
                         }
                         ch.pipeline()
+                                // 注册Decoder和Encoder
                                 .addLast("decoder", adapter.getDecoder())
                                 .addLast("encoder", adapter.getEncoder())
+                                // 注册idleStateHandler
                                 .addLast("server-idle-handler", new IdleStateHandler(0, 0, idleTimeout, MILLISECONDS))
+                                // 注册NettyServerHandler
                                 .addLast("handler", nettyServerHandler);
                     }
                 });

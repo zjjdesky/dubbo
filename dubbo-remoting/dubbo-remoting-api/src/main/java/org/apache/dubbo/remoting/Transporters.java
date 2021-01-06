@@ -24,6 +24,10 @@ import org.apache.dubbo.remoting.transport.ChannelHandlerDispatcher;
 
 /**
  * Transporter facade. (API, Static, ThreadSafe)
+ * Transporter的门面 封装了Transporter对象的创建
+ *
+ * 在创建 Client 和 RemotingServer 的时候，可以指定多个 ChannelHandler 绑定到 Channel 来处理其中传输的数据。
+ * Transporters.connect() 方法和 bind() 方法中，会将多个 ChannelHandler 封装成一个 ChannelHandlerDispatcher 对象。
  */
 public class Transporters {
 
@@ -76,6 +80,7 @@ public class Transporters {
     }
 
     public static Transporter getTransporter() {
+        // 自动生成Transporter适配器并加载
         return ExtensionLoader.getExtensionLoader(Transporter.class).getAdaptiveExtension();
     }
 

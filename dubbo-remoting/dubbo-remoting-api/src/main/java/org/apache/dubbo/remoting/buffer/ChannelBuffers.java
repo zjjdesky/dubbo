@@ -26,6 +26,10 @@ public final class ChannelBuffers {
     private ChannelBuffers() {
     }
 
+    /**
+     * 创建DynamicChannelBuffer对象
+     * @return
+     */
     public static ChannelBuffer dynamicBuffer() {
         return dynamicBuffer(256);
     }
@@ -39,6 +43,11 @@ public final class ChannelBuffers {
         return new DynamicChannelBuffer(capacity, factory);
     }
 
+    /**
+     * 创建指定大小的HeapChannelBuffer对象
+     * @param capacity
+     * @return
+     */
     public static ChannelBuffer buffer(int capacity) {
         if (capacity < 0) {
             throw new IllegalArgumentException("capacity can not be negative");
@@ -49,6 +58,13 @@ public final class ChannelBuffers {
         return new HeapChannelBuffer(capacity);
     }
 
+    /**
+     * 将传入的byte[]数组封装成HeadChannelBuffer对象
+     * @param array
+     * @param offset
+     * @param length
+     * @return
+     */
     public static ChannelBuffer wrappedBuffer(byte[] array, int offset, int length) {
         if (array == null) {
             throw new NullPointerException("array == null");
@@ -79,6 +95,11 @@ public final class ChannelBuffers {
         }
     }
 
+    /**
+     * 创建 ByteBufferBackedChannelBuffer 对象
+     * @param capacity
+     * @return
+     */
     public static ChannelBuffer directBuffer(int capacity) {
         if (capacity == 0) {
             return EMPTY_BUFFER;
@@ -90,6 +111,13 @@ public final class ChannelBuffers {
         return buffer;
     }
 
+    /**
+     * 比较两个ChannelBuffer是否相同
+     * 其中会逐个比较两个 ChannelBuffer 中的前 7 个可读字节，只有两者完全一致，才算两个 ChannelBuffer 相同
+     * @param bufferA
+     * @param bufferB
+     * @return
+     */
     public static boolean equals(ChannelBuffer bufferA, ChannelBuffer bufferB) {
         final int aLen = bufferA.readableBytes();
         if (aLen != bufferB.readableBytes()) {

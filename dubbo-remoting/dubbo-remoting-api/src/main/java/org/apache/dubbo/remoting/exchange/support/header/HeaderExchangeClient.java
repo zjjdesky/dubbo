@@ -42,10 +42,21 @@ import static org.apache.dubbo.remoting.utils.UrlUtils.getIdleTimeout;
 
 /**
  * DefaultMessageClient
+ *
+ * HeaderExchangeClient 是 Client 装饰器，主要为其装饰的Client添加如下两个功能：
+ * 1. 维持与 Server 的长连状态，这是通过定时发送心跳消息实现的；
+ * 2. 在因故障掉线之后，进行重连，这是通过定时检查连接状态实现的。
  */
 public class HeaderExchangeClient implements ExchangeClient {
 
+    /**
+     * 被修饰的Client对象
+     * HeaderExchangeClient 中对 Client 接口的实现，都会委托给该对象进行处理。
+     */
     private final Client client;
+    /**
+     * HeaderExchangeClient 中对 ExchangeChannel 接口的实现，都会委托给该对象进行处理。
+     */
     private final ExchangeChannel channel;
 
     private static final HashedWheelTimer IDLE_CHECK_TIMER = new HashedWheelTimer(
@@ -60,7 +71,9 @@ public class HeaderExchangeClient implements ExchangeClient {
 
         if (startTimer) {
             URL url = client.getUrl();
+            // 执行重连定时任务
             startReconnectTask(url);
+            // 执行心跳定时任务
             startHeartBeatTask(url);
         }
     }

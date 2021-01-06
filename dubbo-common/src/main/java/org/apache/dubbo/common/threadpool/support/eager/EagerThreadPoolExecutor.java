@@ -26,6 +26,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * EagerThreadPoolExecutor
+ * 该线程池与 ThreadPoolExecutor 不同的是：
+ * 在线程数没有达到最大线程数的前提下，EagerThreadPoolExecutor 会优先创建线程来执行任务，而不是放到缓冲队列中；
+ * 当线程数达到最大值时，EagerThreadPoolExecutor 会将任务放入缓冲队列，等待空闲线程。
  */
 public class EagerThreadPoolExecutor extends ThreadPoolExecutor {
 
@@ -52,6 +55,7 @@ public class EagerThreadPoolExecutor extends ThreadPoolExecutor {
 
     @Override
     protected void afterExecute(Runnable r, Throwable t) {
+        // 任务执行结束 递减submittedTaskCount
         submittedTaskCount.decrementAndGet();
     }
 
@@ -61,18 +65,23 @@ public class EagerThreadPoolExecutor extends ThreadPoolExecutor {
             throw new NullPointerException();
         }
         // do not increment in method beforeExecute!
+        // 任务提交之前，递增submittedTaskCount
         submittedTaskCount.incrementAndGet();
         try {
-            super.execute(command);
+            super.execute(command); // run
         } catch (RejectedExecutionException rx) {
             // retry to offer the task into queue.
             final TaskQueue queue = (TaskQueue) super.getQueue();
             try {
+                // 任务被拒绝之后，会尝试再次放入队列中缓存，等待空闲线程执行
                 if (!queue.retryOffer(command, 0, TimeUnit.MILLISECONDS)) {
+                    // 再次入队被拒绝，则队列已满，无法执行任务
+                    // 递减submittedTaskCount
                     submittedTaskCount.decrementAndGet();
                     throw new RejectedExecutionException("Queue capacity is full.", rx);
                 }
             } catch (InterruptedException x) {
+                // 再次入队列异常，递减submittedTaskCount
                 submittedTaskCount.decrementAndGet();
                 throw new RejectedExecutionException(x);
             }
