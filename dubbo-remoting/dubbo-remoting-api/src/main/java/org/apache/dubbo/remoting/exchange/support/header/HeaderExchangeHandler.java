@@ -195,9 +195,9 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
             if (request.isEvent()) {
                 handlerEvent(channel, request);
             } else {
-                if (request.isTwoWay()) {
+                if (request.isTwoWay()) { // two way
                     handleRequest(exchangeChannel, request);
-                } else {
+                } else { // one way
                     handler.received(exchangeChannel, request.getData());
                 }
             }

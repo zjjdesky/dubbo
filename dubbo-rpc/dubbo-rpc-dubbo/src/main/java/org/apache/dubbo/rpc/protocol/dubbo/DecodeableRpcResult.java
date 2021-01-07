@@ -70,17 +70,26 @@ public class DecodeableRpcResult extends AppResponse implements Codec, Decodeabl
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * DecodeableRpcResult解码核心流程
+     *
+     * @param channel channel.
+     * @param input   input stream.
+     * @return
+     * @throws IOException
+     */
     @Override
     public Object decode(Channel channel, InputStream input) throws IOException {
         if (log.isDebugEnabled()) {
             Thread thread = Thread.currentThread();
             log.debug("Decoding in thread -- [" + thread.getName() + "#" + thread.getId() + "]");
         }
-
+        // 反序列化
         ObjectInput in = CodecSupport.getSerialization(channel.getUrl(), serializationType)
                 .deserialize(channel.getUrl(), input);
-
+        // 读取一个byte的标志位
         byte flag = in.readByte();
+        // 根据标志位判断当前结果中包含的信息，并调用不同方法进行处理
         switch (flag) {
             case DubboCodec.RESPONSE_NULL_VALUE:
                 break;

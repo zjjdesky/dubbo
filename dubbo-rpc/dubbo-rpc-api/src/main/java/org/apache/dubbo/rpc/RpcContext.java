@@ -46,7 +46,12 @@ import static org.apache.dubbo.rpc.Constants.RETURN_KEY;
  * Note: RpcContext is a temporary state holder. States in RpcContext changes every time when request is sent or received.
  * For example: A invokes B, then B invokes C. On service B, RpcContext saves invocation info from A to B before B
  * starts invoking C, and saves invocation info from B to C after B invokes C.
+ * RpcContext是线程级别的上下文信息
+ * 每个线程绑定一个 RpcContext 对象，底层依赖 ThreadLocal 实现
  *
+ * RpcContext 主要用于存储一个线程中一次请求的临时状态，
+ * 当线程处理新的请求（Provider 端）或是线程发起新的请求（Consumer 端）时，
+ * RpcContext 中存储的内容就会更新。
  * @export
  * @see org.apache.dubbo.rpc.filter.ContextFilter
  */
@@ -54,6 +59,7 @@ public class RpcContext {
 
     /**
      * use internal thread local to improve performance
+     * 在发起请求时，会只用该RpcContext来存储上下文信息
      */
     // FIXME REQUEST_CONTEXT
     private static final InternalThreadLocal<RpcContext> LOCAL = new InternalThreadLocal<RpcContext>() {
@@ -63,6 +69,9 @@ public class RpcContext {
         }
     };
 
+    /**
+     * 在接收响应的时候，会使用该RpcContext来存储上下文信息
+     */
     // FIXME RESPONSE_CONTEXT
     private static final InternalThreadLocal<RpcContext> SERVER_LOCAL = new InternalThreadLocal<RpcContext>() {
         @Override
@@ -70,22 +79,42 @@ public class RpcContext {
             return new RpcContext();
         }
     };
-
+    /**
+     * 可用于记录调用上下文的附加信息，这些信息会被添加到 Invocation 中，并传递到远端节点。
+     */
     protected final Map<String, Object> attachments = new HashMap<>();
+    /**
+     * 用来记录上下文的键值对信息，但是不会被传递到远端节点。
+     */
     private final Map<String, Object> values = new HashMap<String, Object>();
 
     private List<URL> urls;
 
     private URL url;
 
+    /**
+     * 调用的方法名
+     */
     private String methodName;
 
+    /**
+     * 参数类型表
+     */
     private Class<?>[] parameterTypes;
 
+    /**
+     * 参数表
+     */
     private Object[] arguments;
 
+    /**
+     * 本地地址
+     */
     private InetSocketAddress localAddress;
 
+    /**
+     * 远程地址
+     */
     private InetSocketAddress remoteAddress;
 
     private String remoteApplicationName;
@@ -99,8 +128,18 @@ public class RpcContext {
 
     // now we don't use the 'values' map to hold these objects
     // we want these objects to be as generic as possible
+    /**
+     * 底层关联的请求
+     */
     private Object request;
+    /**
+     * 底层关联的响应
+     */
     private Object response;
+    /**
+     * 异步Context
+     * 其中可以存储异步调用相关的 RpcContext 以及异步请求相关的 Future。
+     */
     private AsyncContext asyncContext;
 
     private boolean remove = true;

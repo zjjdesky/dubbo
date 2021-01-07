@@ -19,6 +19,7 @@ package org.apache.dubbo.common.threadlocal;
 
 /**
  * InternalThread
+ * 通过 NamedInternalThreadFactory 这个工厂类来创建线程的
  */
 public class InternalThread extends Thread {
 

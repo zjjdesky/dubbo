@@ -50,11 +50,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public abstract class AbstractInvoker<T> implements Invoker<T> {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-
+    /**
+     * 当前Invoker对象封装的业务接口类型
+     */
     private final Class<T> type;
 
+    /**
+     * 与当前 Invoker 关联的 URL 对象，其中包含了全部的配置信息。
+     */
     private final URL url;
 
+    /**
+     * 当前 Invoker 关联的一些附加信息 这些附加信息可以来自关联的 URL
+     * 在 AbstractInvoker 的构造函数的某个重载中，会调用 convertAttachment() 方法，
+     * 其中就会从关联的 URL 对象获取指定的 KV 值记录到 attachment 集合中。
+     */
     private final Map<String, Object> attachment;
 
     private volatile boolean available = true;
@@ -138,12 +148,14 @@ public abstract class AbstractInvoker<T> implements Invoker<T> {
             logger.warn("Invoker for service " + this + " on consumer " + NetUtils.getLocalHost() + " is destroyed, "
                     + ", dubbo version is " + Version.getVersion() + ", this invoker should not be used any longer");
         }
+        // 将传入的Invocation转换为RpcInvocation
         RpcInvocation invocation = (RpcInvocation) inv;
         invocation.setInvoker(this);
+        // 将attachment集合添加为Invocation的附加信息
         if (CollectionUtils.isNotEmptyMap(attachment)) {
             invocation.addObjectAttachmentsIfAbsent(attachment);
         }
-
+        // 将RpcContext的附加信息添加为Invocation的附加信息
         Map<String, Object> contextAttachments = RpcContext.getContext().getObjectAttachments();
         if (CollectionUtils.isNotEmptyMap(contextAttachments)) {
             /**
@@ -154,12 +166,14 @@ public abstract class AbstractInvoker<T> implements Invoker<T> {
              */
             invocation.addObjectAttachments(contextAttachments);
         }
-
+        // 设置此次调用的模式
         invocation.setInvokeMode(RpcUtils.getInvokeMode(url, invocation));
+        // 如果是异步调用，给这次调用添加一个唯一ID
         RpcUtils.attachInvocationIdIfAsync(getUrl(), invocation);
 
         AsyncRpcResult asyncResult;
         try {
+            // 调用子类实现doInvoke()方法
             asyncResult = (AsyncRpcResult) doInvoke(invocation);
         } catch (InvocationTargetException e) { // biz exception
             Throwable te = e.getTargetException();
@@ -185,6 +199,7 @@ public abstract class AbstractInvoker<T> implements Invoker<T> {
     }
 
     protected ExecutorService getCallbackExecutor(URL url, Invocation inv) {
+        // 获取线程池
         ExecutorService sharedExecutor = ExtensionLoader.getExtensionLoader(ExecutorRepository.class).getDefaultExtension().getExecutor(url);
         if (InvokeMode.SYNC == RpcUtils.getInvokeMode(getUrl(), inv)) {
             return new ThreadlessExecutor(sharedExecutor);

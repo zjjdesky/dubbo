@@ -116,12 +116,17 @@ public class InternalThreadLocal<V> {
      */
     @SuppressWarnings("unchecked")
     public final V get() {
+        // 获取当前线程绑定的InternalThreadLocalMap
         InternalThreadLocalMap threadLocalMap = InternalThreadLocalMap.get();
+        // 根据当前InternalThreadLocal对象的index字段，
+        // 从InternalThreadLocalMap中读取相应的数据
         Object v = threadLocalMap.indexedVariable(index);
         if (v != InternalThreadLocalMap.UNSET) {
-            return (V) v;
+            return (V) v; // 如果非UNSET，则表示读取到了有效数据，直接返回
         }
-
+        // 读取到UNSET值，则会调用initialize()方法进行初始化，
+        // 其中首先会调用initialValue()方法进行初始化，
+        // 然后会调用setIndexedVariable()方法和addToVariablesToRemove()方法存储初始化得到的值
         return initialize(threadLocalMap);
     }
 
@@ -143,10 +148,13 @@ public class InternalThreadLocal<V> {
      */
     public final void set(V value) {
         if (value == null || value == InternalThreadLocalMap.UNSET) {
+            // 如果要存储的值为null或是UNSERT，则直接清除
             remove();
         } else {
+            // 获取当前线程绑定的InternalThreadLocalMap
             InternalThreadLocalMap threadLocalMap = InternalThreadLocalMap.get();
             if (threadLocalMap.setIndexedVariable(index, value)) {
+                // 将当前InternalThreadLocal记录到待删除集合中
                 addToVariablesToRemove(threadLocalMap, this);
             }
         }

@@ -83,6 +83,7 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
     protected Result doInvoke(final Invocation invocation) throws Throwable {
         RpcInvocation inv = (RpcInvocation) invocation;
         final String methodName = RpcUtils.getMethodName(invocation);
+        // 向Invocation中添加附加信息，这里将URL的path和version添加到附加信息中
         inv.setAttachment(PATH_KEY, getUrl().getPath());
         inv.setAttachment(VERSION_KEY, version);
 
@@ -93,18 +94,32 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
             currentClient = clients[index.getAndIncrement() % clients.length];
         }
         try {
+            // 根据url以及invocation中的配置判断此次调用是否是oneway方式
             boolean isOneway = RpcUtils.isOneway(getUrl(), invocation);
+            // 根据调用的方法名称和配置计算此次调用的超时时间
             int timeout = calculateTimeout(invocation, methodName);
             if (isOneway) {
+                // 不需要关注返回值请求;使用send()方法;
+                // send()直接将 Invocation 包装成 oneway 类型的 Request 发送出去
+                // 在发送完成之后，会立即创建一个已完成状态的AsyncRpcResult对象
+
                 boolean isSent = getUrl().getMethodParameter(methodName, Constants.SENT_KEY, false);
                 currentClient.send(inv, isSent);
                 return AsyncRpcResult.newDefaultAsyncResult(invocation);
             } else {
+                // 需要关注返回值的请求;使用request()方法;
+                // request() 方法会相应地创建 DefaultFuture 对象以及检测超时的定时任务
+
+                // 获取处理响应的线程池
+                // 对于同步请求，则会使用ThreadlessExecutor
+                // 对于异步请求，则会使用共享的线程池ExecutorRepository
                 ExecutorService executor = getCallbackExecutor(getUrl(), inv);
+                // 使用上面选出的ExchangeClient执行request()方法，将请求发送出去
                 CompletableFuture<AppResponse> appResponseFuture =
                         currentClient.request(inv, timeout, executor).thenApply(obj -> (AppResponse) obj);
                 // save for 2.6.x compatibility, for example, TraceFilter in Zipkin uses com.alibaba.xxx.FutureAdapter
                 FutureContext.getContext().setCompatibleFuture(appResponseFuture);
+                // 将AppResponse封装成AsyncRpcResult
                 AsyncRpcResult result = new AsyncRpcResult(appResponseFuture, inv);
                 result.setExecutor(executor);
                 return result;

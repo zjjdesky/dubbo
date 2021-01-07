@@ -49,10 +49,19 @@ public class AppResponse implements Result {
 
     private static final long serialVersionUID = -6925924956850004727L;
 
+    /**
+     * 响应结果，也就是服务端返回的结果值
+     */
     private Object result;
 
+    /**
+     * 服务端返回的异常信息
+     */
     private Throwable exception;
 
+    /**
+     * 服务端返回的附加信息
+     */
     private Map<String, Object> attachments = new HashMap<>();
 
     public AppResponse() {
@@ -68,7 +77,7 @@ public class AppResponse implements Result {
 
     @Override
     public Object recreate() throws Throwable {
-        if (exception != null) {
+        if (exception != null) { // 存在异常则直接抛
             // fix issue#619
             try {
                 // get Throwable class
@@ -88,6 +97,7 @@ public class AppResponse implements Result {
             }
             throw exception;
         }
+        // 无异常时，正常返回
         return result;
     }
 
