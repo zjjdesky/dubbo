@@ -32,7 +32,7 @@ import static org.apache.dubbo.rpc.Constants.INPUT_KEY;
 import static org.apache.dubbo.rpc.Constants.OUTPUT_KEY;
 
 /**
- * DubboCountCodec 只负责在解码过程中 ChannelBuffer 的 readerIndex 指针控制
+ * DubboCountCodec 只负责在解码过程中对 ChannelBuffer 的 readerIndex 指针控制
  */
 public final class DubboCountCodec implements Codec2 {
 
