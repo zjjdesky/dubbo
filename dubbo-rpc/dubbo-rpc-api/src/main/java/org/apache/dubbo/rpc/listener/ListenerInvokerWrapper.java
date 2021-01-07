@@ -30,13 +30,19 @@ import java.util.List;
 
 /**
  * ListenerInvoker
+ * ListenerInvokerWrapper 是 Invoker 的装饰器
  */
 public class ListenerInvokerWrapper<T> implements Invoker<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(ListenerInvokerWrapper.class);
-
+    /**
+     * 底层被修饰的Invoker对象
+     */
     private final Invoker<T> invoker;
 
+    /**
+     * 监听器集合
+     */
     private final List<InvokerListener> listeners;
 
     public ListenerInvokerWrapper(Invoker<T> invoker, List<InvokerListener> listeners) {
@@ -49,7 +55,7 @@ public class ListenerInvokerWrapper<T> implements Invoker<T> {
             for (InvokerListener listener : listeners) {
                 if (listener != null) {
                     try {
-                        listener.referred(invoker);
+                        listener.referred(invoker); // 在服务引用过程中触发全部InvokerListener监听器
                     } catch (Throwable t) {
                         logger.error(t.getMessage(), t);
                     }

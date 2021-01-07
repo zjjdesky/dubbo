@@ -51,14 +51,28 @@ public class ProtocolFilterWrapper implements Protocol {
         this.protocol = protocol;
     }
 
+    /**
+     * 构造filter链
+     * 1. 首先会根据 URL 中携带的配置信息，确定当前激活的 Filter 扩展实现有哪些，形成 Filter 集合。
+     * 2. 遍历 Filter 集合，将每个 Filter 实现封装成一个匿名 Invoker，
+     *    在这个匿名 Invoker 中，会调用 Filter 的 invoke() 方法执行 Filter 的逻辑，
+     *    然后由 Filter 内部的逻辑决定是否将调用传递到下一个 Filter 执行。
+     * @param invoker
+     * @param key
+     * @param group
+     * @param <T>
+     * @return
+     */
     private static <T> Invoker<T> buildInvokerChain(final Invoker<T> invoker, String key, String group) {
         Invoker<T> last = invoker;
+        // 根据 URL 中携带的配置信息，确定当前激活的 Filter 扩展实现有哪些，形成 Filter 集合
         List<Filter> filters = ExtensionLoader.getExtensionLoader(Filter.class).getActivateExtension(invoker.getUrl(), key, group);
 
         if (!filters.isEmpty()) {
             for (int i = filters.size() - 1; i >= 0; i--) {
                 final Filter filter = filters.get(i);
                 final Invoker<T> next = last;
+                // 遍历 Filter 集合，将每个 Filter 实现封装成一个匿名 Invoker
                 last = new Invoker<T>() {
 
                     @Override
@@ -80,6 +94,8 @@ public class ProtocolFilterWrapper implements Protocol {
                     public Result invoke(Invocation invocation) throws RpcException {
                         Result asyncResult;
                         try {
+                            // 调用 Filter 的 invoke() 方法执行 Filter 的逻辑，
+                            // 然后由 Filter 内部的逻辑决定是否将调用传递到下一个 Filter 执行
                             asyncResult = filter.invoke(next, invocation);
                         } catch (Exception e) {
                             if (filter instanceof ListenableFilter) {
@@ -107,8 +123,10 @@ public class ProtocolFilterWrapper implements Protocol {
                                 try {
                                     if (listener != null) {
                                         if (t == null) {
+                                            // 当 invoke() 方法执行正常结束时，会调用该 Listener 的 onResponse() 方法进行通知
                                             listener.onResponse(r, invoker, invocation);
                                         } else {
+                                            // 当invoke() 方法执行出现异常时，会调用该 Listener 的 onError() 方法进行通知。
                                             listener.onError(t, invoker, invocation);
                                         }
                                     }

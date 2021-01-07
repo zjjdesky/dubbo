@@ -72,7 +72,8 @@ public class AsyncRpcResult implements Result {
      */
     private Invocation invocation;
     /**
-     *
+     * 属于DefaultFuture回调链上的一个Future
+     * AsyncRpcResult之上添加的回调，实际都是添加到这个Future上
      */
     private CompletableFuture<AppResponse> responseFuture;
 

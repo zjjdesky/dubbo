@@ -194,6 +194,7 @@ public abstract class AbstractInvoker<T> implements Invoker<T> {
         } catch (Throwable e) {
             asyncResult = AsyncRpcResult.newDefaultAsyncResult(null, e, invocation);
         }
+        // FUTURE 模式下拿到的 CompletableFuture 对象其实是在 AbstractInvoker 中塞到 RpcContext 中的
         RpcContext.getContext().setFuture(new FutureAdapter(asyncResult.getResponseFuture()));
         return asyncResult;
     }
