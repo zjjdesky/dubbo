@@ -52,7 +52,7 @@ import static org.apache.dubbo.rpc.Constants.TOKEN_KEY;
 /**
  * ContextFilter set the provider RpcContext with invoker, invocation, local port it is using and host for
  * current execution thread.
- *
+ * ContextFilter 是 Provider 端的一个 Filter 实现，它主要用来初始化 Provider 端的 RpcContext。
  * @see RpcContext
  */
 @Activate(group = PROVIDER, order = -10000)
@@ -81,8 +81,10 @@ public class ContextFilter implements Filter, Filter.Listener {
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+        // 获取attachments
         Map<String, Object> attachments = invocation.getObjectAttachments();
         if (attachments != null) {
+            // 过滤掉UNLOADING_KEYS集合
             Map<String, Object> newAttach = new HashMap<>(attachments.size());
             for (Map.Entry<String, Object> entry : attachments.entrySet()) {
                 String key = entry.getKey();
@@ -106,13 +108,13 @@ public class ContextFilter implements Filter, Filter.Listener {
         }
 
         long timeout = RpcUtils.getTimeout(invocation, -1);
-        if (timeout != -1) {
+        if (timeout != -1) { // 设置超时时间
             context.set(TIME_COUNTDOWN_KEY, TimeoutCountDown.newCountDown(timeout, TimeUnit.MILLISECONDS));
         }
 
         // merged from dubbox
         // we may already added some attachments into RpcContext before this filter (e.g. in rest protocol)
-        if (attachments != null) {
+        if (attachments != null) { // 想RpcContext中设置attachments
             if (context.getObjectAttachments() != null) {
                 context.getObjectAttachments().putAll(attachments);
             } else {
@@ -120,16 +122,20 @@ public class ContextFilter implements Filter, Filter.Listener {
             }
         }
 
-        if (invocation instanceof RpcInvocation) {
+        if (invocation instanceof RpcInvocation) { // 向Invocation设置Invoker
             ((RpcInvocation) invocation).setInvoker(invoker);
         }
 
         try {
+            // 在整个调用过程中，需要保持当前RpcContext不被删除，这里会将remove开关关掉，
+            // 这样，removeContext()方法不会删除LOCAL RpcContext了
             context.clearAfterEachInvoke(false);
             return invoker.invoke(invocation);
         } finally {
+            // 重置remove开关
             context.clearAfterEachInvoke(true);
             // IMPORTANT! For async scenario, we must remove context from current thread, so we always create a new RpcContext for the next invoke for the same thread.
+            // 清理RpcContext，当前线程处理下一个调用的时候，会创建新的RpcContext
             RpcContext.removeContext(true);
             RpcContext.removeServerContext();
         }

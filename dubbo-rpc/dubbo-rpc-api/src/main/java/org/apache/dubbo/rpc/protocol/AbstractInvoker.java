@@ -155,7 +155,7 @@ public abstract class AbstractInvoker<T> implements Invoker<T> {
         if (CollectionUtils.isNotEmptyMap(attachment)) {
             invocation.addObjectAttachmentsIfAbsent(attachment);
         }
-        // 将RpcContext的附加信息添加为Invocation的附加信息
+        // 将RpcContext的附加信息添加为Invocation的附加信息 一并传递到 Provider 端
         Map<String, Object> contextAttachments = RpcContext.getContext().getObjectAttachments();
         if (CollectionUtils.isNotEmptyMap(contextAttachments)) {
             /**
