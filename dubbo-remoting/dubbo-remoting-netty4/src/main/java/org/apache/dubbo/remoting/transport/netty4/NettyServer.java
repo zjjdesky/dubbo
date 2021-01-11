@@ -90,7 +90,7 @@ public class NettyServer extends AbstractServer implements RemotingServer {
                 getUrl().getPositiveParameter(IO_THREADS_KEY, Constants.DEFAULT_IO_THREADS),
                 "NettyServerWorker");
         // 创建NettyServerHandler，它是一个Netty中的ChannelHandler实现，
-        // 不是Dubbo Remoting层的ChannelHandler接口的实现
+        // 不是Dubbo Remoting层的ChannelHandler接口的实现  this将自己传入 NettyServer
         final NettyServerHandler nettyServerHandler = new NettyServerHandler(getUrl(), this);
 
         // 获取当前NettyServer创建的所有Channel，这里的channels集合中的

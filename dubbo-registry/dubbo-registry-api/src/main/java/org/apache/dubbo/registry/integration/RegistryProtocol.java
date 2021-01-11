@@ -174,7 +174,10 @@ public class RegistryProtocol implements Protocol {
     }
 
     private void register(URL registryUrl, URL registeredProviderUrl) {
+        // registryUrl -> zookeeper://
         Registry registry = registryFactory.getRegistry(registryUrl);
+        // registryUrl -> dubbo://
+        // 基于curator去zk服务器上注册一个协议地址 创建一个临时节点 因为可以动态感知
         registry.register(registeredProviderUrl);
     }
 
@@ -186,6 +189,13 @@ public class RegistryProtocol implements Protocol {
                 registered));
     }
 
+    /**
+     * 实现服务的注册和发布
+     * @param originInvoker
+     * @param <T>
+     * @return
+     * @throws RpcException
+     */
     @Override
     public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
         URL registryUrl = getRegistryUrl(originInvoker);
@@ -201,10 +211,13 @@ public class RegistryProtocol implements Protocol {
         overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
 
         providerUrl = overrideUrlWithConfig(providerUrl, overrideSubscribeListener);
+
         //export invoker
+        // doLocalExport 本质上就是启动一个netty服务
         final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl);
 
         // url to registry
+        // 把dubbo://  url注册到注册中心上
         final Registry registry = getRegistry(originInvoker);
         final URL registeredProviderUrl = getUrlToRegistry(providerUrl, registryUrl);
 
@@ -220,7 +233,7 @@ public class RegistryProtocol implements Protocol {
 
         exporter.setRegisterUrl(registeredProviderUrl);
         exporter.setSubscribeUrl(overrideSubscribeUrl);
-
+        // 订阅通知
         // Deprecated! Subscribe to override rules in 2.6.x or before.
         registry.subscribe(overrideSubscribeUrl, overrideSubscribeListener);
 
@@ -251,7 +264,10 @@ public class RegistryProtocol implements Protocol {
         String key = getCacheKey(originInvoker);
 
         return (ExporterChangeableWrapper<T>) bounds.computeIfAbsent(key, s -> {
+            // originalInvoker -> InvokeDelegate(DelegateProviderMetaDataInvoker(invoker))
             Invoker<?> invokerDelegate = new InvokerDelegate<>(originInvoker, providerUrl);
+            // protocol -> Protocol$Adaptive
+            // protocol 是通过set进行了依赖注入
             return new ExporterChangeableWrapper<>((Exporter<T>) protocol.export(invokerDelegate), originInvoker);
         });
     }
@@ -435,7 +451,9 @@ public class RegistryProtocol implements Protocol {
     @Override
     @SuppressWarnings("unchecked")
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
+        // -> zookeeper://
         url = getRegistryUrl(url);
+        // ZookeeperRegistry
         Registry registry = registryFactory.getRegistry(url);
         if (RegistryService.class.equals(type)) {
             return proxyFactory.getInvoker((T) registry, type, url);
@@ -454,10 +472,24 @@ public class RegistryProtocol implements Protocol {
         return doRefer(cluster, registry, type, url);
     }
 
+    /**
+     * 1. 首先从zk上获得provider url和建立连接
+     * 2. 构建invoker
+     * @param cluster
+     * @param registry
+     * @param type
+     * @param url
+     * @param <T>
+     * @return
+     */
     private <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url) {
+        /*****************************************/
+        // 1. 连接到注册中心 -> curator
+        // 2. 从注册中心拿到地址 -> providerUrl
+        // 3. 基于provider地址建立通信
         RegistryDirectory<T> directory = new RegistryDirectory<T>(type, url);
-        directory.setRegistry(registry);
-        directory.setProtocol(protocol);
+        directory.setRegistry(registry); // registry -> 连接zk
+        directory.setProtocol(protocol); // protocol -> DubboProtocol -> 建立通信
         // all attributes of REFER_KEY
         Map<String, String> parameters = new HashMap<String, String>(directory.getConsumerUrl().getParameters());
         URL subscribeUrl = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
@@ -466,9 +498,15 @@ public class RegistryProtocol implements Protocol {
             registry.register(directory.getRegisteredConsumerUrl());
         }
         directory.buildRouterChain(subscribeUrl);
+        // 订阅
         directory.subscribe(toSubscribeUrl(subscribeUrl));
 
+        /*********************************************/
+        // 生成invoker
+        // failover=org.apache.dubbo.rpc.cluster.support.FailoverCluster
+        // cluster -> MockClusterWrapper(FailoverCluster(invoker))
         Invoker<T> invoker = cluster.join(directory);
+
         List<RegistryProtocolListener> listeners = findRegistryProtocolListeners(url);
         if (CollectionUtils.isEmpty(listeners)) {
             return invoker;

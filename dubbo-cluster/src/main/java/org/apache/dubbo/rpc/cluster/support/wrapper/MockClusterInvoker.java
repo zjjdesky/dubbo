@@ -78,24 +78,31 @@ public class MockClusterInvoker<T> implements ClusterInvoker<T> {
         return directory.getInterface();
     }
 
+    /**
+     * 1. mock远程通信，进行测试
+     * 2. 出现异常情况下，进行异常降级
+     * @param invocation 抽象了一次RPC调用的目标服务和方法信息、相关参数、具体的数值以及一些附加信息
+     * @return
+     * @throws RpcException
+     */
     @Override
     public Result invoke(Invocation invocation) throws RpcException {
         Result result = null;
-
+        //
         String value = getUrl().getMethodParameter(invocation.getMethodName(), MOCK_KEY, Boolean.FALSE.toString()).trim();
-        if (value.length() == 0 || "false".equalsIgnoreCase(value)) {
+        if (value.length() == 0 || "false".equalsIgnoreCase(value)) { // 不走mock
             //no mock
             result = this.invoker.invoke(invocation);
-        } else if (value.startsWith("force")) {
+        } else if (value.startsWith("force")) { // 强制的走本地的返回
             if (logger.isWarnEnabled()) {
                 logger.warn("force-mock: " + invocation.getMethodName() + " force-mock enabled , url : " + getUrl());
             }
             //force:direct mock
             result = doMockInvoke(invocation, null);
-        } else {
+        } else { //
             //fail-mock
             try {
-                result = this.invoker.invoke(invocation);
+                result = this.invoker.invoke(invocation); // 远程调用
 
                 //fix:#4585
                 if(result.getException() != null && result.getException() instanceof RpcException){
@@ -108,7 +115,7 @@ public class MockClusterInvoker<T> implements ClusterInvoker<T> {
                 }
 
             } catch (RpcException e) {
-                if (e.isBiz()) {
+                if (e.isBiz()) { // 业务异常
                     throw e;
                 }
 

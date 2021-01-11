@@ -176,6 +176,9 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         dispatch(new ServiceConfigUnexportedEvent(this));
     }
 
+    /**
+     * 服务暴露入口
+     */
     public synchronized void export() {
         if (!shouldExport()) {
             return;
@@ -185,7 +188,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
             bootstrap = DubboBootstrap.getInstance();
             bootstrap.initialize();
         }
-
+        // 检查或者更新配置
         checkAndUpdateSubConfigs();
 
         //init serviceMetadata
@@ -212,6 +215,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
 
     private void checkAndUpdateSubConfigs() {
         // Use default configs defined explicitly with global scope
+        // 完善默认配置
         completeCompoundConfigs();
         checkDefault();
         checkProtocol();
@@ -307,7 +311,8 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                 this,
                 serviceMetadata
         );
-
+        // 加载注册中心 并生成url地址 url驱动流程执行
+        // URL -> [registry://ip:port/org.apapche.dubbo.registry.RegistryService...]
         List<URL> registryURLs = ConfigValidationUtils.loadRegistries(this, true);
 
         for (ProtocolConfig protocolConfig : protocols) {
@@ -318,20 +323,23 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
             repository.registerService(pathKey, interfaceClass);
             // TODO, uncomment this line once service key is unified
             serviceMetadata.setServiceKey(pathKey);
+            // 如果服务支持指定暴露多个协议 则依次暴露
             doExportUrlsFor1Protocol(protocolConfig, registryURLs);
         }
     }
 
     private void doExportUrlsFor1Protocol(ProtocolConfig protocolConfig, List<URL> registryURLs) {
+        // 获取协议名 name=dubbo <dubbo:protocol name="dubbo"/>
         String name = protocolConfig.getName();
         if (StringUtils.isEmpty(name)) {
             name = DUBBO;
         }
-
+        // 读取配置信息到map 用于后续构造url
         Map<String, String> map = new HashMap<String, String>();
         map.put(SIDE_KEY, PROVIDER_SIDE);
 
         ServiceConfig.appendRuntimeParameters(map);
+        // 添加配置信息
         AbstractConfig.appendParameters(map, getMetrics());
         AbstractConfig.appendParameters(map, getApplication());
         AbstractConfig.appendParameters(map, getModule());
@@ -340,6 +348,12 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         AbstractConfig.appendParameters(map, provider);
         AbstractConfig.appendParameters(map, protocolConfig);
         AbstractConfig.appendParameters(map, this);
+        /**
+         * 解析参数
+         * <dubbo:service>
+         *     <dubbo:method>xxx</dubbo:method>
+         * </dubbo:service>
+         */
         if (CollectionUtils.isNotEmpty(getMethods())) {
             for (MethodConfig method : getMethods()) {
                 AbstractConfig.appendParameters(map, method, method.getName());
@@ -434,25 +448,31 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         // export service
         String host = findConfigedHosts(protocolConfig, registryURLs, map);
         Integer port = findConfigedPorts(protocolConfig, name, map);
+        // 转换成url
         URL url = new URL(name, host, port, getContextPath(protocolConfig).map(p -> p + "/" + path).orElse(path), map);
 
         // You can customize Configurator to append extra parameters
+        // 动态配置修改
         if (ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class)
                 .hasExtension(url.getProtocol())) {
             url = ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class)
                     .getExtension(url.getProtocol()).getConfigurator(url).configure(url);
         }
 
-        String scope = url.getParameter(SCOPE_KEY);
+        // url已经组装完成 下面就可以进行发布
+        String scope = url.getParameter(SCOPE_KEY); // 选择服务发布范围 (local/remote)
+        // 同一个jvm里面，没必要远程调用  injvm://ip:port
+        // 远程发布remote:  dubbo://ip:port/service
+        // 默认情况下，如果是配置remote（registry），默认发布本地和远程
         // don't export when none is configured
         if (!SCOPE_NONE.equalsIgnoreCase(scope)) {
 
             // export to local if the config is not remote (export to remote only when config is remote)
-            if (!SCOPE_REMOTE.equalsIgnoreCase(scope)) {
-                exportLocal(url);
+            if (!SCOPE_REMOTE.equalsIgnoreCase(scope)) { // 非远程
+                exportLocal(url); // 本地服务暴露
             }
             // export to remote if the config is not local (export to local only when config is local)
-            if (!SCOPE_LOCAL.equalsIgnoreCase(scope)) {
+            if (!SCOPE_LOCAL.equalsIgnoreCase(scope)) { // 非本地
                 if (CollectionUtils.isNotEmpty(registryURLs)) {
                     for (URL registryURL : registryURLs) {
                         //if protocol is only injvm ,not register
@@ -462,6 +482,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                         url = url.addParameterIfAbsent(DYNAMIC_KEY, registryURL.getParameter(DYNAMIC_KEY));
                         URL monitorUrl = ConfigValidationUtils.loadMonitor(this, registryURL);
                         if (monitorUrl != null) {
+                            // 如果配置了监控 则服务调用信息会上报
                             url = url.addParameterAndEncoded(MONITOR_KEY, monitorUrl.toFullString());
                         }
                         if (logger.isInfoEnabled()) {
@@ -477,11 +498,15 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                         if (StringUtils.isNotEmpty(proxy)) {
                             registryURL = registryURL.addParameter(PROXY_KEY, proxy);
                         }
-
+                        // 通过动态代理转换成Invoker
+                        // registryURL存储的是注册中心地址
+                        // 使用export作为key追加服务元数据信息
+                        // ProxyFactory$Adaptive.getInvoker -> 调用链路：StubProxyFactoryWrapper(JavassistProxyFactory())
                         Invoker<?> invoker = PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass, registryURL.addParameterAndEncoded(EXPORT_KEY, url.toFullString()));
+                        // MataData元数据委托
                         DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
-
-                        Exporter<?> exporter = PROTOCOL.export(wrapperInvoker);
+                        // 服务暴露后向注册中心注册服务信息
+                        Exporter<?> exporter = PROTOCOL.export(wrapperInvoker); // registry://ip:port/service  -> RegistryProtocol
                         exporters.add(exporter);
                     }
                 } else {
@@ -490,7 +515,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                     }
                     Invoker<?> invoker = PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass, url);
                     DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
-
+                    // 没有注册中心场景 直接暴露服务
                     Exporter<?> exporter = PROTOCOL.export(wrapperInvoker);
                     exporters.add(exporter);
                 }
@@ -568,6 +593,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                                 continue;
                             }
                             try (Socket socket = new Socket()) {
+                                // 连接注册中心 获取本机ip
                                 SocketAddress addr = new InetSocketAddress(registryURL.getHost(), registryURL.getPort());
                                 socket.connect(addr, 1000);
                                 hostToBind = socket.getLocalAddress().getHostAddress();

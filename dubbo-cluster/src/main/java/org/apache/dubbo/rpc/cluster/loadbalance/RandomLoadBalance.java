@@ -48,7 +48,7 @@ public class RandomLoadBalance extends AbstractLoadBalance {
         // Number of invokers
         int length = invokers.size();
         // Every invoker has the same weight?
-        boolean sameWeight = true;
+        boolean sameWeight = true;  // 权重是否一样 如果一样 则随机选 否则按照权重来选
         // the weight of every invokers
         int[] weights = new int[length];
         // the first invoker's weight
@@ -57,6 +57,7 @@ public class RandomLoadBalance extends AbstractLoadBalance {
         // The sum of weights
         int totalWeight = firstWeight;
         for (int i = 1; i < length; i++) {
+            // 获取权重  并不是仅仅根据我们url中的配置来实现，还有个服务的启动时间
             int weight = getWeight(invokers.get(i), invocation);
             // save for later use
             weights[i] = weight;

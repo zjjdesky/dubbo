@@ -34,6 +34,7 @@ public class ZookeeperRegistryFactory extends AbstractRegistryFactory {
      * @param zookeeperTransporter
      */
     public void setZookeeperTransporter(ZookeeperTransporter zookeeperTransporter) {
+        // curator=org.apache.dubbo.remoting.zookeeper.curator.CuratorZookeeperTransporter
         this.zookeeperTransporter = zookeeperTransporter;
     }
 

@@ -35,6 +35,13 @@ import java.util.Set;
 public class SpringExtensionFactory implements ExtensionFactory {
     private static final Logger logger = LoggerFactory.getLogger(SpringExtensionFactory.class);
 
+    /**
+     * spring上下文
+     *
+     * myq: spring上下文什么时候保存起来的呢？
+     * mya: 在ReferenceBean和ServiceBean中会调用静态方法保存Spring上下文
+     *      即一个服务被发布或被引用的时候，对应的spring上下文会保存下来
+     */
     private static final Set<ApplicationContext> CONTEXTS = new ConcurrentHashSet<ApplicationContext>();
 
     public static void addApplicationContext(ApplicationContext context) {
@@ -65,7 +72,7 @@ public class SpringExtensionFactory implements ExtensionFactory {
         if (type.isInterface() && type.isAnnotationPresent(SPI.class)) {
             return null;
         }
-
+        // 遍历所有spring上下文，根据名称和type从spring中查找bean
         for (ApplicationContext context : CONTEXTS) {
             // 从spring中查找bean
             T bean = BeanFactoryUtils.getOptionalBean(context, name, type);

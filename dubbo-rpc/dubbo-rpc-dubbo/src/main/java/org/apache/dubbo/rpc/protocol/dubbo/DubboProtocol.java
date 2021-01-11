@@ -147,6 +147,7 @@ public class DubboProtocol extends AbstractProtocol {
             // 将客户端的地址记录到RpcContext中
             RpcContext.getContext().setRemoteAddress(channel.getRemoteAddress());
             // 执行真正的调用
+            // invoker -> ProtocolFilterWrapper(InvokerDelegate(DelegateProviderMetaInvoker(AbstractProxyInvoker)))
             Result result = invoker.invoke(inv);
             // 返回结果
             return result.thenApply(Function.identity());
@@ -374,6 +375,7 @@ public class DubboProtocol extends AbstractProtocol {
                 // Codec2扩展实现
                 .addParameter(CODEC_KEY, DubboCodec.NAME)
                 .build();
+        // 获得当前应该采用什么方式来发布服务
         String str = url.getParameter(SERVER_KEY, DEFAULT_REMOTING_SERVER);
 
         if (str != null && str.length() > 0 && !ExtensionLoader.getExtensionLoader(Transporter.class).hasExtension(str)) {
@@ -442,6 +444,7 @@ public class DubboProtocol extends AbstractProtocol {
         optimizeSerialization(url);
 
         // create rpc invoker.
+        // getClients -> 构建一个通信
         DubboInvoker<T> invoker = new DubboInvoker<T>(serviceType, url, getClients(url), invokers);
         invokers.add(invoker);
 

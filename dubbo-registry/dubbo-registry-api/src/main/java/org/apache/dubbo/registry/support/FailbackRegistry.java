@@ -286,8 +286,9 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         removeFailedUnregistered(url);
         try {
             // Sending a registration request to the server side
+            // ZookeeperRegistry#doRegister
             doRegister(url);
-        } catch (Exception e) {
+        } catch (Exception e) { // 错误处理
             Throwable t = e;
 
             // If the startup detection is opened, the Exception is thrown directly.
@@ -305,6 +306,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
             }
 
             // Record a failed registration request to a failed list, retry regularly
+            // 记录失败的情况 下次重试
             addFailedRegistered(url);
         }
     }
@@ -379,6 +381,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         removeFailedSubscribed(url, listener);
         try {
             // Sending a subscription request to the server side
+            // ZookeeperRegistry#doSubscribe
             doSubscribe(url, listener);
         } catch (Exception e) {
             Throwable t = e;

@@ -121,6 +121,7 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
         Object msg = req.getData();
         try {
             // 交给上层实现的ExchangeHandler进行处理
+            // org.apache.dubbo.rpc.protocol.dubbo.DubboProtocol.requestHandler
             CompletionStage<Object> future = handler.reply(channel, msg);
             future.whenComplete((appResult, t) -> { // 处理结束后的回调
                 try {
@@ -189,21 +190,22 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
     @Override
     public void received(Channel channel, Object message) throws RemotingException {
         final ExchangeChannel exchangeChannel = HeaderExchangeChannel.getOrAddChannel(channel);
-        if (message instanceof Request) {
+
+        if (message instanceof Request) { // 消息类型是请求消息
             // handle request.
             Request request = (Request) message;
             if (request.isEvent()) {
                 handlerEvent(channel, request);
             } else {
-                if (request.isTwoWay()) { // two way
+                if (request.isTwoWay()) { // two way -> true
                     handleRequest(exchangeChannel, request);
                 } else { // one way
                     handler.received(exchangeChannel, request.getData());
                 }
             }
-        } else if (message instanceof Response) {
+        } else if (message instanceof Response) { // 消息类型是响应消息
             handleResponse(channel, (Response) message);
-        } else if (message instanceof String) {
+        } else if (message instanceof String) { // 其他： telnet
             if (isClientSide(channel)) {
                 Exception e = new Exception("Dubbo client can not supported string message: " + message + " in channel: " + channel + ", url: " + channel.getUrl());
                 logger.error(e.getMessage(), e);

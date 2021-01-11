@@ -57,6 +57,9 @@ import static org.apache.dubbo.rpc.Constants.TOKEN_KEY;
  */
 public class DubboInvoker<T> extends AbstractInvoker<T> {
 
+    /**
+     * 通信客户端
+     */
     private final ExchangeClient[] clients;
 
     private final AtomicPositiveInteger index = new AtomicPositiveInteger();
@@ -86,7 +89,7 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
         // 向Invocation中添加附加信息，这里将URL的path和version添加到附加信息中
         inv.setAttachment(PATH_KEY, getUrl().getPath());
         inv.setAttachment(VERSION_KEY, version);
-
+        // 拿到客户端连接 去通信
         ExchangeClient currentClient;
         if (clients.length == 1) {
             currentClient = clients[0];
@@ -115,6 +118,7 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
                 // 对于异步请求，则会使用共享的线程池ExecutorRepository
                 ExecutorService executor = getCallbackExecutor(getUrl(), inv);
                 // 使用上面选出的ExchangeClient执行request()方法，将请求发送出去
+                // currentClient -> ReferenceCountExchangeClient(HeaderExchangeChannel(HeaderExchangeChannel()))
                 CompletableFuture<AppResponse> appResponseFuture =
                         currentClient.request(inv, timeout, executor).thenApply(obj -> (AppResponse) obj);
                 // save for 2.6.x compatibility, for example, TraceFilter in Zipkin uses com.alibaba.xxx.FutureAdapter

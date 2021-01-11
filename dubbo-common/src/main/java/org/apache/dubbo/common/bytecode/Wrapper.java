@@ -263,6 +263,7 @@ public abstract class Wrapper {
             for (Method m : ms.values()) {
                 wc.getField("mts" + ix++).set(null, m.getParameterTypes());
             }
+            // 生成包装类
             return (Wrapper) wc.newInstance();
         } catch (RuntimeException e) {
             throw e;

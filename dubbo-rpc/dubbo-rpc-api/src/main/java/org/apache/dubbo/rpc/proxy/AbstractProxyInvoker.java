@@ -81,6 +81,8 @@ public abstract class AbstractProxyInvoker<T> implements Invoker<T> {
     @Override
     public Result invoke(Invocation invocation) throws RpcException {
         try {
+            // 生成invoker -> org.apache.dubbo.rpc.proxy.javassist.JavassistProxyFactory.getInvoker
+            // new AbstractProxyInvoker()<>{ doInvoke() }
             Object value = doInvoke(proxy, invocation.getMethodName(), invocation.getParameterTypes(), invocation.getArguments());
 			CompletableFuture<Object> future = wrapWithFuture(value);
             CompletableFuture<AppResponse> appResponseFuture = future.handle((obj, t) -> {
