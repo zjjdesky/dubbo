@@ -69,7 +69,13 @@ public class DubboBeanDefinitionParser implements BeanDefinitionParser {
     private static final String ONTHROW = "onthrow";
     private static final String ONINVOKE = "oninvoke";
     private static final String METHOD = "Method";
+    /**
+     * bean对象的类
+     */
     private final Class<?> beanClass;
+    /**
+     * 是否需要bean的id属性
+     */
     private final boolean required;
 
     public DubboBeanDefinitionParser(Class<?> beanClass, boolean required) {
@@ -79,11 +85,13 @@ public class DubboBeanDefinitionParser implements BeanDefinitionParser {
 
     @SuppressWarnings("unchecked")
     private static RootBeanDefinition parse(Element element, ParserContext parserContext, Class<?> beanClass, boolean required) {
+        // 创建RootBeanDefinition
         RootBeanDefinition beanDefinition = new RootBeanDefinition();
         beanDefinition.setBeanClass(beanClass);
         beanDefinition.setLazyInit(false);
         String id = resolveAttribute(element, "id", parserContext);
         if (StringUtils.isEmpty(id) && required) {
+            // 生产id
             String generatedBeanName = resolveAttribute(element, "name", parserContext);
             if (StringUtils.isEmpty(generatedBeanName)) {
                 if (ProtocolConfig.class.equals(beanClass)) {
@@ -96,6 +104,7 @@ public class DubboBeanDefinitionParser implements BeanDefinitionParser {
                 generatedBeanName = beanClass.getName();
             }
             id = generatedBeanName;
+            // 若id已存在 通过自增序列 解决重复
             int counter = 2;
             while (parserContext.getRegistry().containsBeanDefinition(id)) {
                 id = generatedBeanName + (counter++);
@@ -105,7 +114,9 @@ public class DubboBeanDefinitionParser implements BeanDefinitionParser {
             if (parserContext.getRegistry().containsBeanDefinition(id)) {
                 throw new IllegalStateException("Duplicate spring bean id " + id);
             }
+            // 添加到Spring的注册表
             parserContext.getRegistry().registerBeanDefinition(id, beanDefinition);
+            // 设置bean的id属性值
             beanDefinition.getPropertyValues().addPropertyValue("id", id);
         }
         if (ProtocolConfig.class.equals(beanClass)) {

@@ -52,6 +52,12 @@ public class DubboNamespaceHandler extends NamespaceHandlerSupport implements Co
         Version.checkDuplicate(DubboNamespaceHandler.class);
     }
 
+    /**
+     * service 标签使用的是 ServiceBean ，而不是 ServiceConfig
+     * reference 表示用的是 ReferenceBean
+     *
+     * 无论是 ServiceConfig 还是 ReferenceBean ，在解析完具体配置后，需要调用它们对应的方法进行初始化。
+     */
     @Override
     public void init() {
         registerBeanDefinitionParser("application", new DubboBeanDefinitionParser(ApplicationConfig.class, true));

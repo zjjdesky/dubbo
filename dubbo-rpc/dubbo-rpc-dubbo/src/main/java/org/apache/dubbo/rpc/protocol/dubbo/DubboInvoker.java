@@ -85,6 +85,7 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
     @Override
     protected Result doInvoke(final Invocation invocation) throws Throwable {
         RpcInvocation inv = (RpcInvocation) invocation;
+        // 获取方法名
         final String methodName = RpcUtils.getMethodName(invocation);
         // 向Invocation中添加附加信息，这里将URL的path和version添加到附加信息中
         inv.setAttachment(PATH_KEY, getUrl().getPath());

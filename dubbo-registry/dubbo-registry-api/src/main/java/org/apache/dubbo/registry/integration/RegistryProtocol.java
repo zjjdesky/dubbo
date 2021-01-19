@@ -131,7 +131,8 @@ public class RegistryProtocol implements Protocol {
     private final Map<String, ServiceConfigurationListener> serviceConfigurationListeners = new ConcurrentHashMap<>();
     private final ProviderConfigurationListener providerConfigurationListener = new ProviderConfigurationListener();
     //To solve the problem of RMI repeated exposure port conflicts, the services that have been exposed are no longer exposed.
-    //providerurl <--> exporter
+    // providerurl <--> exporter
+    // 用于解决rmi重复暴露端口冲突的问题，已经暴露过的服务不再重新暴露
     private final ConcurrentMap<String, ExporterChangeableWrapper<?>> bounds = new ConcurrentHashMap<>();
     private Protocol protocol;
     private RegistryFactory registryFactory;
@@ -174,9 +175,9 @@ public class RegistryProtocol implements Protocol {
     }
 
     private void register(URL registryUrl, URL registeredProviderUrl) {
-        // registryUrl -> zookeeper://
+        // registryUrl -> zookeeper://ip:port/services
         Registry registry = registryFactory.getRegistry(registryUrl);
-        // registryUrl -> dubbo://
+        // registryUrl -> dubbo://ip:port/services
         // 基于curator去zk服务器上注册一个协议地址 创建一个临时节点 因为可以动态感知
         registry.register(registeredProviderUrl);
     }
@@ -219,11 +220,13 @@ public class RegistryProtocol implements Protocol {
         // url to registry
         // 把dubbo://  url注册到注册中心上
         final Registry registry = getRegistry(originInvoker);
+        // 获得服务提供者url
         final URL registeredProviderUrl = getUrlToRegistry(providerUrl, registryUrl);
 
         // decide if we need to delay publish
         boolean register = providerUrl.getParameter(REGISTER_KEY, true);
         if (register) {
+            // 向注册中心注册自己
             register(registryUrl, registeredProviderUrl);
         }
 
@@ -443,6 +446,7 @@ public class RegistryProtocol implements Protocol {
      * @return
      */
     private String getCacheKey(final Invoker<?> originInvoker) {
+        // 获取服务提供者url
         URL providerUrl = getProviderUrl(originInvoker);
         String key = providerUrl.removeParameters("dynamic", "enabled").toFullString();
         return key;
@@ -452,8 +456,10 @@ public class RegistryProtocol implements Protocol {
     @SuppressWarnings("unchecked")
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
         // -> zookeeper://
+        // 获取真实的注册中心的URL
         url = getRegistryUrl(url);
         // ZookeeperRegistry
+        // 获得注册中心
         Registry registry = registryFactory.getRegistry(url);
         if (RegistryService.class.equals(type)) {
             return proxyFactory.getInvoker((T) registry, type, url);
@@ -469,6 +475,7 @@ public class RegistryProtocol implements Protocol {
         }
 
         Cluster cluster = Cluster.getCluster(qs.get(CLUSTER_KEY));
+        // 执行服务引用
         return doRefer(cluster, registry, type, url);
     }
 
@@ -495,10 +502,11 @@ public class RegistryProtocol implements Protocol {
         URL subscribeUrl = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
         if (directory.isShouldRegister()) {
             directory.setRegisteredConsumerUrl(subscribeUrl);
+            // 向注册中心注册自己
             registry.register(directory.getRegisteredConsumerUrl());
         }
         directory.buildRouterChain(subscribeUrl);
-        // 订阅
+        // 向注册中心订阅服务提供者
         directory.subscribe(toSubscribeUrl(subscribeUrl));
 
         /*********************************************/
@@ -846,6 +854,9 @@ public class RegistryProtocol implements Protocol {
     }
 
     // for unit test
+    /**
+     * 单例
+     */
     private static RegistryProtocol INSTANCE;
 
     // for unit test

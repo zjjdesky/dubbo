@@ -58,9 +58,18 @@ public class ProtocolListenerWrapper implements Protocol {
 
     @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
+        // 注册中心
         if (UrlUtils.isRegistry(invoker.getUrl())) {
             return protocol.export(invoker);
         }
+        /**
+         * // 暴露服务，创建 Exporter 对象
+         * Exporter<T> exporter = protocol.export(invoker);
+         * // 获得 ExporterListener 数组
+         * List<ExporterListener> listeners = Collections.unmodifiableList(ExtensionLoader.getExtensionLoader(ExporterListener.class).getActivateExtension(invoker.getUrl(), Constants.EXPORTER_LISTENER_KEY));
+         * // 创建带 ExporterListener 的 Exporter 对象
+         *return new ListenerExporterWrapper<T>(exporter, listeners);
+         */
         return new ListenerExporterWrapper<T>(protocol.export(invoker),
                 Collections.unmodifiableList(ExtensionLoader.getExtensionLoader(ExporterListener.class)
                         .getActivateExtension(invoker.getUrl(), EXPORTER_LISTENER_KEY)));

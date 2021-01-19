@@ -40,6 +40,7 @@ import static org.apache.dubbo.common.constants.CommonConstants.THREAD_NAME_KEY;
 /**
  * Creates a thread pool that creates new threads as needed until limits reaches. This thread pool will not shrink
  * automatically.
+ * 可伸缩线程池，但池中的线程数只会增长不会收缩。只增长不收缩的目的是为了避免收缩时突然来了大流量引起的性能问题
  */
 public class LimitedThreadPool implements ThreadPool {
 
@@ -49,6 +50,8 @@ public class LimitedThreadPool implements ThreadPool {
         int cores = url.getParameter(CORE_THREADS_KEY, DEFAULT_CORE_THREADS);
         int threads = url.getParameter(THREADS_KEY, DEFAULT_THREADS);
         int queues = url.getParameter(QUEUES_KEY, DEFAULT_QUEUES);
+
+        // aliveTime = Long.MAX_VALUE 空闲时间无限大 表示线程创建后 不会被删除
         return new ThreadPoolExecutor(cores, threads, Long.MAX_VALUE, TimeUnit.MILLISECONDS,
                 queues == 0 ? new SynchronousQueue<Runnable>() :
                         (queues < 0 ? new LinkedBlockingQueue<Runnable>()

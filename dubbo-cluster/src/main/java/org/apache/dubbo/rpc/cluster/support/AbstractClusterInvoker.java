@@ -257,7 +257,7 @@ public abstract class AbstractClusterInvoker<T> implements ClusterInvoker<T> {
         }
 
         //
-        //
+        // 获取invoker列表
         List<Invoker<T>> invokers = list(invocation);
         /********************负载均衡******************/
         // 初始化负载均衡机制

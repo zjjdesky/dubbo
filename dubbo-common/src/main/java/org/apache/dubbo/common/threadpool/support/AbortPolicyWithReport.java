@@ -43,10 +43,19 @@ public class AbortPolicyWithReport extends ThreadPoolExecutor.AbortPolicy {
 
     protected static final Logger logger = LoggerFactory.getLogger(AbortPolicyWithReport.class);
 
+    /**
+     * 线程名
+     */
     private final String threadName;
 
+    /**
+     * url对象
+     */
     private final URL url;
 
+    /**
+     * 最后打印时间
+     */
     private static volatile long lastPrintTime = 0;
 
     private static final long TEN_MINUTES_MILLS = 10 * 60 * 1000;
@@ -59,6 +68,9 @@ public class AbortPolicyWithReport extends ThreadPoolExecutor.AbortPolicy {
 
     private static final String DEFAULT_DATETIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
 
+    /**
+     * 信号量，大小为1
+     */
     private static Semaphore guard = new Semaphore(1);
 
     public AbortPolicyWithReport(String threadName, URL url) {
@@ -121,6 +133,7 @@ public class AbortPolicyWithReport extends ThreadPoolExecutor.AbortPolicy {
             //try-with-resources
             try (FileOutputStream jStackStream = new FileOutputStream(
                 new File(dumpPath, "Dubbo_JStack.log" + "." + dateStr))) {
+                // 打印JStack
                 JVMUtil.jstack(jStackStream);
             } catch (Throwable t) {
                 logger.error("dump jStack error", t);

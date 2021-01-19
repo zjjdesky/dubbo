@@ -166,6 +166,13 @@ public class ConfigValidationUtils {
     private static final Pattern PATTERN_KEY = Pattern.compile("[*,\\-._0-9a-zA-Z]+");
 
 
+    /**
+     * 加载注册中心URL数组
+     * <img>https://zjjdesky-blog.oss-cn-hangzhou.aliyuncs.com/img/markdown/20210118164200.png</img>
+     * @param interfaceConfig
+     * @param provider
+     * @return
+     */
     public static List<URL> loadRegistries(AbstractInterfaceConfig interfaceConfig, boolean provider) {
         // check && override if necessary
         List<URL> registryList = new ArrayList<URL>();
@@ -173,6 +180,7 @@ public class ConfigValidationUtils {
         List<RegistryConfig> registries = interfaceConfig.getRegistries();
         if (CollectionUtils.isNotEmpty(registries)) {
             for (RegistryConfig config : registries) {
+                // 获取注册中心地址
                 String address = config.getAddress();
                 if (StringUtils.isEmpty(address)) {
                     address = ANYHOST_VALUE;
@@ -183,11 +191,11 @@ public class ConfigValidationUtils {
                     AbstractConfig.appendParameters(map, config);
                     map.put(PATH_KEY, RegistryService.class.getName());
                     AbstractInterfaceConfig.appendRuntimeParameters(map);
-                    if (!map.containsKey(PROTOCOL_KEY)) {
+                    if (!map.containsKey(PROTOCOL_KEY)) { // 若不存在 protocol 参数，默认 "dubbo" 添加到 `map` 集合中
                         map.put(PROTOCOL_KEY, DUBBO_PROTOCOL);
                     }
                     List<URL> urls = UrlUtils.parseURLs(address, map);
-
+                    // 循环urls ，设置 "registry" 和 "protocol" 属性
                     for (URL url : urls) {
 
                         url = URLBuilder.from(url)

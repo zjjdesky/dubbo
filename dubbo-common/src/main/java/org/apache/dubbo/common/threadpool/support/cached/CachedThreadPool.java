@@ -42,6 +42,7 @@ import static org.apache.dubbo.common.constants.CommonConstants.THREAD_NAME_KEY;
  * the upcoming request.
  *
  * @see java.util.concurrent.Executors#newCachedThreadPool()
+ * 缓存线程池，空闲一分钟自动删除，需要时重建
  */
 public class CachedThreadPool implements ThreadPool {
 

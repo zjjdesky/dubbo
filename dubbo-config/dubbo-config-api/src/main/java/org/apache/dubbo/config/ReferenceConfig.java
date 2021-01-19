@@ -340,6 +340,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                 // if protocols not injvm checkRegistry
                 if (!LOCAL_PROTOCOL.equalsIgnoreCase(getProtocol())) {
                     checkRegistry();
+                    // 加载注册中心URL
                     List<URL> us = ConfigValidationUtils.loadRegistries(this, false);
                     if (CollectionUtils.isNotEmpty(us)) {
                         for (URL u : us) {
@@ -356,12 +357,12 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                 }
             }
 
-            if (urls.size() == 1) {
+            if (urls.size() == 1) { // 单url引用
                 // 构建一个invoker
                 // REF_PROTOCOL -> Protocol$Adaptive -> getExtension("registry") -> Qos(Listener(Filter(RegistryProtocol)))
                 // RegistryProtocol
                 invoker = REF_PROTOCOL.refer(interfaceClass, urls.get(0));
-            } else {
+            } else { // 多url引用
                 List<Invoker<?>> invokers = new ArrayList<Invoker<?>>();
                 URL registryURL = null;
                 for (URL url : urls) {
@@ -370,6 +371,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                         registryURL = url; // use last registry url
                     }
                 }
+                // 有注册中心
                 if (registryURL != null) { // registry url is available
                     // for multi-subscription scenario, use 'zone-aware' policy by default
                     String cluster = registryURL.getParameter(CLUSTER_KEY, ZoneAwareCluster.NAME);

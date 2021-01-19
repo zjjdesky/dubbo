@@ -34,7 +34,7 @@ public abstract class AbstractExporter<T> implements Exporter<T> {
     private final Invoker<T> invoker;
 
     /**
-     * 是否没发布
+     * 是否取消暴露服务
      */
     private volatile boolean unexported = false;
 

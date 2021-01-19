@@ -111,11 +111,15 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
      */
     private static final ScheduledExecutorService DELAY_EXPORT_EXECUTOR = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("DubboServiceDelayExporter", true));
 
+    /**
+     * 自适应的Protocol对象
+     */
     private static final Protocol PROTOCOL = ExtensionLoader.getExtensionLoader(Protocol.class).getAdaptiveExtension();
 
     /**
      * A {@link ProxyFactory} implementation that will generate a exported service proxy,the JavassistProxyFactory is its
      * default implementation
+     * 自适应的ProtocolFactory实现对象
      */
     private static final ProxyFactory PROXY_FACTORY = ExtensionLoader.getExtensionLoader(ProxyFactory.class).getAdaptiveExtension();
 
@@ -133,6 +137,11 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
 
     /**
      * The exported services
+     * 服务配置暴露的 Exporter
+     * URL ：Exporter 不一定是 1：1 的关系。
+     * 例如 {@link #scope} 未设置时，会暴露 Local + Remote 两个，也就是 URL ：Exporter = 1：2
+     *     {@link #scope} 设置为空时，不会暴露，也就是 URL ：Exporter = 1：0
+     *     {@link #scope} 设置为 Local 或 Remote 任一时，会暴露 Local 或 Remote 一个，也就是 URL ：Exporter = 1：1
      */
     private final List<Exporter<?>> exporters = new ArrayList<Exporter<?>>();
 
@@ -479,7 +488,9 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                         if (LOCAL_PROTOCOL.equalsIgnoreCase(url.getProtocol())) {
                             continue;
                         }
+                        // "dynamic" ：服务是否动态注册，如果设为false，注册后将显示后disable状态，需人工启用，并且服务提供者停止时，也不会自动取消册，需人工禁用
                         url = url.addParameterIfAbsent(DYNAMIC_KEY, registryURL.getParameter(DYNAMIC_KEY));
+                        // 获得监控中心 URL
                         URL monitorUrl = ConfigValidationUtils.loadMonitor(this, registryURL);
                         if (monitorUrl != null) {
                             // 如果配置了监控 则服务调用信息会上报
@@ -509,11 +520,13 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                         Exporter<?> exporter = PROTOCOL.export(wrapperInvoker); // registry://ip:port/service  -> RegistryProtocol
                         exporters.add(exporter);
                     }
-                } else {
+                } else { // 用于被服务消费者直连服务提供者
                     if (logger.isInfoEnabled()) {
                         logger.info("Export dubbo service " + interfaceClass.getName() + " to url " + url);
                     }
+                    // 使用 ProxyFactory 创建 Invoker 对象
                     Invoker<?> invoker = PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass, url);
+                    // 创建 DelegateProviderMetaDataInvoker 对象
                     DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
                     // 没有注册中心场景 直接暴露服务
                     Exporter<?> exporter = PROTOCOL.export(wrapperInvoker);
@@ -529,13 +542,17 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
      * always export injvm
      */
     private void exportLocal(URL url) {
+        // 创建本地url
         URL local = URLBuilder.from(url)
                 .setProtocol(LOCAL_PROTOCOL)
                 .setHost(LOCALHOST_VALUE)
                 .setPort(0)
                 .build();
+        // 使用 ProxyFactory 创建 Invoker 对象
+        // 使用 Protocol 暴露 Invoker 对象
         Exporter<?> exporter = PROTOCOL.export(
                 PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass, local));
+        // 添加exporter
         exporters.add(exporter);
         logger.info("Export dubbo service " + interfaceClass.getName() + " to local registry url : " + local);
     }
